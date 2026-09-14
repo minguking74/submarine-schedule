@@ -44,7 +44,8 @@ npm run dev         # server(:4000) + client(:5173) 동시 실행
 ## 로그인 / 권한
 
 admin/viewer 공유 비밀번호 기반 로그인이 있습니다 (`server/.env`의 `ADMIN_PASSWORD`,
-`VIEWER_PASSWORD`, `JWT_SECRET`). 로그인 시 이름을 입력하며, 관리자는 "로그인 기록"
+`VIEWER_PASSWORD`, `JWT_SECRET`). 로그인 시 사번을 입력하고 admin/viewer 권한을 선택한 뒤,
+선택한 권한에 해당하는 비밀번호를 입력합니다. 관리자는 "로그인 기록"
 메뉴에서 누가 언제 로그인했는지 확인할 수 있습니다. viewer는 모든 화면을 조회만 할 수
 있고 추가/수정/삭제는 admin만 가능합니다 (서버 API도 동일하게 제한됩니다).
 
