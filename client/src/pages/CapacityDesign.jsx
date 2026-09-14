@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import DataTable from '../components/DataTable.jsx';
+import { useAuth } from '../auth.jsx';
 
 const COLUMNS = [
   { key: 'seg_type', label: 'Type', type: 'select', options: ['S', 'L'] },
@@ -20,6 +21,7 @@ const PHASE_COLUMNS = [
 ];
 
 export default function CapacityDesign() {
+  const { isAdmin } = useAuth();
   const [rows, setRows] = useState([]);
   const [phaseRows, setPhaseRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,6 +48,7 @@ export default function CapacityDesign() {
       <div className="card">
         <h3 className="card-title">Segment 설계 용량</h3>
         <DataTable
+          readOnly={!isAdmin}
           columns={COLUMNS}
           rows={rows}
           onCreate={async (v) => { await api.post('/capacity-design', v); reload(); }}
@@ -57,6 +60,7 @@ export default function CapacityDesign() {
       <div className="card">
         <h3 className="card-title">SJC2 한-싱 추가 가능 용량 (Tbps) — 단계별 계획</h3>
         <DataTable
+          readOnly={!isAdmin}
           columns={PHASE_COLUMNS}
           rows={phaseRows}
           onCreate={async (v) => { await api.post('/capacity-phase', v); reload(); }}

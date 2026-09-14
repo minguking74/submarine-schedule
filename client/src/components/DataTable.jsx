@@ -4,7 +4,7 @@ import { useState } from 'react';
  * Generic spreadsheet-like editable table.
  * columns: [{ key, label, type: 'text'|'number'|'date'|'select', options?: string[], width? }]
  */
-export default function DataTable({ columns, rows, onCreate, onUpdate, onDelete, emptyLabel = '데이터가 없습니다' }) {
+export default function DataTable({ columns, rows, onCreate, onUpdate, onDelete, emptyLabel = '데이터가 없습니다', readOnly = false }) {
   const [editingId, setEditingId] = useState(null);
   const [draft, setDraft] = useState({});
   const [creating, setCreating] = useState(false);
@@ -77,15 +77,15 @@ export default function DataTable({ columns, rows, onCreate, onUpdate, onDelete,
         <thead>
           <tr>
             {columns.map((c) => <th key={c.key} style={{ width: c.width }}>{c.label}</th>)}
-            <th className="actions-col">관리</th>
+            {!readOnly && <th className="actions-col">관리</th>}
           </tr>
         </thead>
         <tbody>
           {rows.length === 0 && !creating && (
-            <tr><td colSpan={columns.length + 1} className="empty-row">{emptyLabel}</td></tr>
+            <tr><td colSpan={columns.length + (readOnly ? 0 : 1)} className="empty-row">{emptyLabel}</td></tr>
           )}
           {rows.map((row) => {
-            const isEditing = editingId === row.id;
+            const isEditing = !readOnly && editingId === row.id;
             return (
               <tr key={row.id} className={isEditing ? 'editing' : ''}>
                 {columns.map((c) => (
@@ -95,25 +95,27 @@ export default function DataTable({ columns, rows, onCreate, onUpdate, onDelete,
                       : displayValue(c, row)}
                   </td>
                 ))}
-                <td className="actions-col">
-                  {isEditing ? (
-                    <>
-                      <button className="btn-sm btn-primary" onClick={saveEdit}>저장</button>
-                      <button className="btn-sm" onClick={cancelEdit}>취소</button>
-                    </>
-                  ) : (
-                    <>
-                      <button className="btn-sm" onClick={() => startEdit(row)}>수정</button>
-                      <button className="btn-sm btn-danger" onClick={() => {
-                        if (confirm('삭제하시겠습니까?')) onDelete(row.id);
-                      }}>삭제</button>
-                    </>
-                  )}
-                </td>
+                {!readOnly && (
+                  <td className="actions-col">
+                    {isEditing ? (
+                      <>
+                        <button className="btn-sm btn-primary" onClick={saveEdit}>저장</button>
+                        <button className="btn-sm" onClick={cancelEdit}>취소</button>
+                      </>
+                    ) : (
+                      <>
+                        <button className="btn-sm" onClick={() => startEdit(row)}>수정</button>
+                        <button className="btn-sm btn-danger" onClick={() => {
+                          if (confirm('삭제하시겠습니까?')) onDelete(row.id);
+                        }}>삭제</button>
+                      </>
+                    )}
+                  </td>
+                )}
               </tr>
             );
           })}
-          {creating && (
+          {!readOnly && creating && (
             <tr className="editing">
               {columns.map((c) => (
                 <td key={c.key}>
@@ -128,7 +130,7 @@ export default function DataTable({ columns, rows, onCreate, onUpdate, onDelete,
           )}
         </tbody>
       </table>
-      {!creating && <button className="btn-add" onClick={startCreate}>+ 행 추가</button>}
+      {!readOnly && !creating && <button className="btn-add" onClick={startCreate}>+ 행 추가</button>}
     </div>
   );
 }

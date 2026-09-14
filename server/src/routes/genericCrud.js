@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db.js';
 import { logActivity } from '../calc.js';
+import { requireAdmin } from '../auth.js';
 
 /**
  * Builds a simple REST CRUD router for a table with a fixed set of editable columns.
@@ -23,7 +24,7 @@ export function makeCrudRouter({ table, columns, orderBy = 'id', describe }) {
     res.json(row);
   });
 
-  router.post('/', async (req, res) => {
+  router.post('/', requireAdmin, async (req, res) => {
     const payload = Object.fromEntries(columns.map((c) => [c, req.body[c] ?? null]));
     const info = await db.prepare(`INSERT INTO ${table} (${cols}) VALUES (${placeholders}) RETURNING id`).run(payload);
     const row = await db.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(info.lastInsertRowid);
@@ -31,7 +32,7 @@ export function makeCrudRouter({ table, columns, orderBy = 'id', describe }) {
     res.status(201).json(row);
   });
 
-  router.put('/:id', async (req, res) => {
+  router.put('/:id', requireAdmin, async (req, res) => {
     const existing = await db.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(req.params.id);
     if (!existing) return res.status(404).json({ error: 'not found' });
     const payload = Object.fromEntries(columns.map((c) => [c, req.body[c] ?? existing[c]]));
@@ -42,7 +43,7 @@ export function makeCrudRouter({ table, columns, orderBy = 'id', describe }) {
     res.json(row);
   });
 
-  router.delete('/:id', async (req, res) => {
+  router.delete('/:id', requireAdmin, async (req, res) => {
     const existing = await db.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(req.params.id);
     if (!existing) return res.status(404).json({ error: 'not found' });
     await db.prepare(`DELETE FROM ${table} WHERE id = ?`).run(req.params.id);

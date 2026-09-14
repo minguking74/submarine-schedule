@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import DataTable from '../components/DataTable.jsx';
+import { useAuth } from '../auth.jsx';
 
 const S_COLUMNS = [
   { key: 'dls_code', label: 'DLS', type: 'text' },
@@ -24,6 +25,7 @@ const L_COLUMNS = [
 ];
 
 export default function InternalDemand() {
+  const { isAdmin } = useAuth();
   const [sRows, setSRows] = useState([]);
   const [lRows, setLRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -49,6 +51,7 @@ export default function InternalDemand() {
       <div className="card">
         <h3 className="card-title">IP백본 Segment S 내부수요 (Tbps)</h3>
         <DataTable
+          readOnly={!isAdmin}
           columns={S_COLUMNS}
           rows={sRows}
           onCreate={async (v) => { await api.post('/internal-demand-s', v); reload(); }}
@@ -60,6 +63,7 @@ export default function InternalDemand() {
       <div className="card">
         <h3 className="card-title">IP백본 Segment L 내부수요 (Tbps)</h3>
         <DataTable
+          readOnly={!isAdmin}
           columns={L_COLUMNS}
           rows={lRows}
           onCreate={async (v) => { await api.post('/internal-demand-l', v); reload(); }}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import DataTable from '../components/DataTable.jsx';
+import { useAuth } from '../auth.jsx';
 
 const COLUMNS = [
   { key: 'schedule', label: 'Schedule', type: 'text' },
@@ -15,6 +16,7 @@ const COLUMNS = [
 ];
 
 export default function Lightup() {
+  const { isAdmin } = useAuth();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -46,6 +48,7 @@ export default function Lightup() {
 
       <div className="card">
         <DataTable
+          readOnly={!isAdmin}
           columns={COLUMNS}
           rows={rows}
           onCreate={async (v) => { await api.post('/lightup', v); reload(); }}

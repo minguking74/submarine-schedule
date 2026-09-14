@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import DataTable from '../components/DataTable.jsx';
+import { useAuth } from '../auth.jsx';
 
 const COLUMNS = [
   { key: 'no', label: 'No.', type: 'number' },
@@ -16,6 +17,7 @@ const COLUMNS = [
 ];
 
 export default function Funnel() {
+  const { isAdmin } = useAuth();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -36,6 +38,7 @@ export default function Funnel() {
       </div>
       <div className="card">
         <DataTable
+          readOnly={!isAdmin}
           columns={COLUMNS}
           rows={rows}
           onCreate={async (v) => { await api.post('/funnel', v); reload(); }}

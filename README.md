@@ -41,6 +41,24 @@ npm run dev         # server(:4000) + client(:5173) 동시 실행
 | 변경 이력 | Log | 모든 추가/수정/삭제가 자동 기록 |
 | 설정 | KPIs, 환율 | ₩/$ 기준환율, 연도별 KPI 메모 |
 
+## 로그인 / 권한
+
+admin/viewer 공유 비밀번호 기반 로그인이 있습니다 (`server/.env`의 `ADMIN_PASSWORD`,
+`VIEWER_PASSWORD`, `JWT_SECRET`). 로그인 시 이름을 입력하며, 관리자는 "로그인 기록"
+메뉴에서 누가 언제 로그인했는지 확인할 수 있습니다. viewer는 모든 화면을 조회만 할 수
+있고 추가/수정/삭제는 admin만 가능합니다 (서버 API도 동일하게 제한됩니다).
+
+## 케이블 프로젝트 / 외부 자료 / 챗봇
+
+- 좌측 상단 SJC2 / E2A / PAE 버튼으로 케이블을 전환할 수 있습니다. E2A(2028 서비스 예정),
+  PAE(2031 서비스 예정)는 간단 개요 페이지이며 admin이 내용을 입력/수정합니다.
+- "외부 자료" 메뉴에 submarinecablemap.com, subtelforum.com 링크가 있습니다.
+- 우하단 챗봇은 이 앱의 내부 데이터만 근거로 답변합니다. `LLM_PROVIDER`가 설정되지
+  않으면 안내 메시지만 표시됩니다. 사내 LLM 연동 시 `server/.env`에
+  `LLM_PROVIDER=internal`, `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`을 채우면 됩니다
+  (Anthropic API를 쓰는 경우 `LLM_PROVIDER=anthropic`). Vercel 배포본에도 동일한 환경변수를
+  추가해야 합니다.
+
 ## 데이터 정확성 참고사항
 
 Contracts 시트를 그대로 베끼지 않고, 원본 컬럼(MRC/OTC/연O&M/기간/환율)에서
