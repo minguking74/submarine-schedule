@@ -22,28 +22,29 @@ function segmentSoldForL(contracts, segmentId) {
   };
 }
 
-function lightupAgg(segmentId, status) {
-  const row = db.prepare(
+async function lightupAgg(segmentId, status) {
+  const row = await db.prepare(
     `SELECT COALESCE(SUM(if100g),0) as q100, COALESCE(SUM(if400g),0) as q400
      FROM lightup_schedule WHERE segment_id = ? AND status = ?`
   ).get(segmentId, status);
-  return { q100: row.q100, q400: row.q400 };
+  return { q100: Number(row.q100), q400: Number(row.q400) };
 }
 
-export function buildSegmentDetail(segType, contracts) {
-  const segments = db.prepare(
+export async function buildSegmentDetail(segType, contracts) {
+  const segments = await db.prepare(
     `SELECT * FROM capacity_design WHERE seg_type = ? ORDER BY sort_order, id`
   ).all(segType);
 
-  const details = segments.map((seg) => {
-    const equip = lightupAgg(seg.segment_id, '설치완료');
-    const constr = lightupAgg(seg.segment_id, '구축중');
+  const details = [];
+  for (const seg of segments) {
+    const equip = await lightupAgg(seg.segment_id, '설치완료');
+    const constr = await lightupAgg(seg.segment_id, '구축중');
     const sold = segType === 'S'
       ? segmentSoldForS(contracts, seg.segment_id)
       : segmentSoldForL(contracts, seg.segment_id);
     const avail100 = equip.q100 - sold.sold100;
     const avail400 = equip.q400 - sold.sold400;
-    return {
+    details.push({
       segment_id: seg.segment_id,
       segment_label: seg.segment_label,
       design: seg.design_capacity_gbps,
@@ -60,8 +61,8 @@ export function buildSegmentDetail(segType, contracts) {
       buildable_remaining: segType === 'S'
         ? seg.design_capacity_gbps - (equip.q100 + equip.q400 + constr.q100 + constr.q400)
         : null,
-    };
-  });
+    });
+  }
 
   const total = details.reduce((acc, d) => {
     acc.design += d.design;
@@ -81,40 +82,45 @@ export function buildSegmentDetail(segType, contracts) {
   return { rows: details, total };
 }
 
-function fundraisingStageAgg() {
+async function fundraisingStageAgg() {
   const stages = ['Prospect', 'Negotiation', 'Signed', 'Active'];
-  return stages.map((stage) => {
-    const row = db.prepare(
+  const result = [];
+  for (const stage of stages) {
+    const row = await db.prepare(
       `SELECT COUNT(*) as cnt, COALESCE(SUM(if100g + if400g),0) as bw
        FROM funnel WHERE stage = ?`
     ).get(stage);
-    return { stage, count: row.cnt, bandwidth_gbps: row.bw };
-  });
+    result.push({ stage, count: Number(row.cnt), bandwidth_gbps: Number(row.bw) });
+  }
+  return result;
 }
 
-function lightupStatusAgg() {
+async function lightupStatusAgg() {
   const statuses = ['설치완료', '구축중', '계획중'];
-  return statuses.map((status) => {
-    const rows = db.prepare(`SELECT if100g, if400g, unit_price FROM lightup_schedule WHERE status = ?`).all(status);
+  const result = [];
+  for (const status of statuses) {
+    const rows = await db.prepare(`SELECT if100g, if400g, unit_price FROM lightup_schedule WHERE status = ?`).all(status);
     const qty = rows.reduce((s, r) => s + (r.if100g || 0) + (r.if400g || 0), 0);
     const cost = rows.reduce((s, r) => s + (((r.if100g || 0) + (r.if400g || 0)) / 100) * (r.unit_price || 0), 0);
-    return { status, qty_gbps: qty, est_cost_usd: cost };
-  });
+    result.push({ status, qty_gbps: qty, est_cost_usd: cost });
+  }
+  return result;
 }
 
-export function buildDashboard() {
-  const rate = getFxRate();
-  const contracts = listEnrichedContracts();
+export async function buildDashboard() {
+  const rate = await getFxRate();
+  const contracts = await listEnrichedContracts();
   const activeContracts = contracts.filter((c) => c.status === 'Active');
 
-  const segmentS = buildSegmentDetail('S', contracts);
-  const segmentLDetails = SEGMENT_L_IDS.map((id) => {
-    const seg = db.prepare(`SELECT * FROM capacity_design WHERE segment_id = ?`).get(id);
-    if (!seg) return null;
-    const equip = lightupAgg(id, '설치완료');
-    const constr = lightupAgg(id, '구축중');
+  const segmentS = await buildSegmentDetail('S', contracts);
+  const segmentLDetails = [];
+  for (const id of SEGMENT_L_IDS) {
+    const seg = await db.prepare(`SELECT * FROM capacity_design WHERE segment_id = ?`).get(id);
+    if (!seg) continue;
+    const equip = await lightupAgg(id, '설치완료');
+    const constr = await lightupAgg(id, '구축중');
     const sold = segmentSoldForL(contracts, id);
-    return {
+    segmentLDetails.push({
       segment_id: id,
       segment_label: seg.segment_label,
       design: seg.design_capacity_gbps,
@@ -126,8 +132,8 @@ export function buildDashboard() {
       sold400: sold.sold400,
       avail100: equip.q100 - sold.sold100,
       avail400: equip.q400 - sold.sold400,
-    };
-  }).filter(Boolean);
+    });
+  }
 
   const segmentLTotal = segmentLDetails.reduce((acc, d) => {
     acc.design += d.design; acc.equip100 += d.equip100; acc.equip400 += d.equip400;
@@ -137,7 +143,8 @@ export function buildDashboard() {
     return acc;
   }, { segment_id: 'TOTAL', segment_label: 'TOTAL', design: 0, equip100: 0, equip400: 0, construct100: 0, construct400: 0, sold100: 0, sold400: 0, avail100: 0, avail400: 0 });
 
-  const designSTotal = db.prepare(`SELECT COALESCE(SUM(design_capacity_gbps),0) as t FROM capacity_design WHERE seg_type='S'`).get().t;
+  const designSRow = await db.prepare(`SELECT COALESCE(SUM(design_capacity_gbps),0) as t FROM capacity_design WHERE seg_type='S'`).get();
+  const designSTotal = Number(designSRow.t);
   const activeBandwidthAll = activeContracts.reduce((s, c) => s + c.bandwidth, 0);
   const utilizationPct = designSTotal > 0 ? Math.round((activeBandwidthAll / designSTotal) * 100) : 0;
 
@@ -149,9 +156,9 @@ export function buildDashboard() {
     .reduce((s, c) => s + c.om_usd, 0) * rate / 1e8;
   const cumulativeRevenueEok = contracts.reduce((s, c) => s + c.total_revenue_usd, 0) * rate / 1e8;
 
-  const currentKpi = db.prepare(`SELECT * FROM kpis ORDER BY year DESC LIMIT 1`).get();
+  const currentKpi = await db.prepare(`SELECT * FROM kpis ORDER BY year DESC LIMIT 1`).get();
 
-  const years = buildRevenueYearly(2023, 2028);
+  const years = await buildRevenueYearly(2023, 2028);
 
   return {
     fx_rate: rate,
@@ -172,8 +179,8 @@ export function buildDashboard() {
       iru_om_eok: iruOmEok,
       cumulative_revenue_eok: cumulativeRevenueEok,
     },
-    funnel_summary: fundraisingStageAgg(),
-    lightup_summary: lightupStatusAgg(),
+    funnel_summary: await fundraisingStageAgg(),
+    lightup_summary: await lightupStatusAgg(),
     revenue_yearly: years,
   };
 }

@@ -6,3 +6,7 @@ server/data/app.db-shm
 dist/
 .DS_Store
 *.log
+.env
+.env.local
+server/.env
+.vercel/

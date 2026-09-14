@@ -10,38 +10,39 @@ const COLUMNS = [
 
 const router = Router();
 
-router.get('/', (req, res) => {
-  const rate = getFxRate();
-  const rows = db.prepare(`SELECT * FROM contracts ORDER BY id`).all();
+router.get('/', async (req, res) => {
+  const rate = await getFxRate();
+  const rows = await db.prepare(`SELECT * FROM contracts ORDER BY id`).all();
   res.json(rows.map((r) => enrichContract(r, rate)));
 });
 
-router.get('/:id', (req, res) => {
-  const row = db.prepare(`SELECT * FROM contracts WHERE id = ?`).get(req.params.id);
+router.get('/:id', async (req, res) => {
+  const row = await db.prepare(`SELECT * FROM contracts WHERE id = ?`).get(req.params.id);
   if (!row) return res.status(404).json({ error: 'not found' });
-  res.json(enrichContract(row, getFxRate()));
+  res.json(enrichContract(row, await getFxRate()));
 });
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const payload = Object.fromEntries(COLUMNS.map((c) => [c, req.body[c] ?? null]));
-  const info = db.prepare(`
+  const info = await db.prepare(`
     INSERT INTO contracts (${COLUMNS.join(', ')})
     VALUES (${COLUMNS.map((c) => `@${c}`).join(', ')})
+    RETURNING id
   `).run(payload);
-  const row = db.prepare(`SELECT * FROM contracts WHERE id = ?`).get(info.lastInsertRowid);
-  logActivity(`[contracts] 계약 추가: ${row.customer} (${row.segment_s || row.segment_l || ''})`);
-  res.status(201).json(enrichContract(row, getFxRate()));
+  const row = await db.prepare(`SELECT * FROM contracts WHERE id = ?`).get(info.lastInsertRowid);
+  await logActivity(`[contracts] 계약 추가: ${row.customer} (${row.segment_s || row.segment_l || ''})`);
+  res.status(201).json(enrichContract(row, await getFxRate()));
 });
 
-router.put('/:id', (req, res) => {
-  const existing = db.prepare(`SELECT * FROM contracts WHERE id = ?`).get(req.params.id);
+router.put('/:id', async (req, res) => {
+  const existing = await db.prepare(`SELECT * FROM contracts WHERE id = ?`).get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'not found' });
   const payload = Object.fromEntries(COLUMNS.map((c) => [c, req.body[c] ?? existing[c]]));
   payload.id = req.params.id;
-  db.prepare(`
+  await db.prepare(`
     UPDATE contracts SET ${COLUMNS.map((c) => `${c} = @${c}`).join(', ')} WHERE id = @id
   `).run(payload);
-  const row = db.prepare(`SELECT * FROM contracts WHERE id = ?`).get(req.params.id);
+  const row = await db.prepare(`SELECT * FROM contracts WHERE id = ?`).get(req.params.id);
 
   const changes = [];
   for (const c of COLUMNS) {
@@ -49,15 +50,15 @@ router.put('/:id', (req, res) => {
       changes.push(`${c}: ${existing[c]} → ${row[c]}`);
     }
   }
-  logActivity(`[contracts] 계약 수정 (${row.customer}): ${changes.join(', ') || '변경 없음'}`);
-  res.json(enrichContract(row, getFxRate()));
+  await logActivity(`[contracts] 계약 수정 (${row.customer}): ${changes.join(', ') || '변경 없음'}`);
+  res.json(enrichContract(row, await getFxRate()));
 });
 
-router.delete('/:id', (req, res) => {
-  const existing = db.prepare(`SELECT * FROM contracts WHERE id = ?`).get(req.params.id);
+router.delete('/:id', async (req, res) => {
+  const existing = await db.prepare(`SELECT * FROM contracts WHERE id = ?`).get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'not found' });
-  db.prepare(`DELETE FROM contracts WHERE id = ?`).run(req.params.id);
-  logActivity(`[contracts] 계약 삭제: ${existing.customer} (${existing.segment_s || existing.segment_l || ''})`);
+  await db.prepare(`DELETE FROM contracts WHERE id = ?`).run(req.params.id);
+  await logActivity(`[contracts] 계약 삭제: ${existing.customer} (${existing.segment_s || existing.segment_l || ''})`);
   res.status(204).end();
 });
 

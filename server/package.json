@@ -5,15 +5,16 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "dev": "node --watch src/index.js",
-    "start": "node src/index.js",
-    "seed": "node src/seed.js"
+    "dev": "node --env-file=.env --watch src/index.js",
+    "start": "node --env-file=.env src/index.js",
+    "seed": "node --env-file=.env src/seed.js"
   },
   "engines": {
     "node": ">=22.5.0"
   },
   "dependencies": {
     "cors": "^2.8.5",
-    "express": "^4.21.1"
+    "express": "^4.21.1",
+    "pg": "^8.23.0"
   }
 }

@@ -3,8 +3,8 @@ import { buildDashboard } from '../dashboard.js';
 
 const router = Router();
 
-router.get('/', (req, res) => {
-  res.json(buildDashboard());
+router.get('/', async (req, res) => {
+  res.json(await buildDashboard());
 });
 
 export default router;
