@@ -8,7 +8,7 @@ router.post('/login', async (req, res) => {
   const name = String(req.body.name || '').trim();
   const password = String(req.body.password || '');
   const role = String(req.body.role || '');
-  if (!name) return res.status(400).json({ error: '사번을 입력해 주세요' });
+  if (!/^\d{4}$/.test(name)) return res.status(400).json({ error: '사번은 숫자 4자리로 입력해 주세요 (예: 4220)' });
   if (role !== 'admin' && role !== 'viewer') return res.status(400).json({ error: '권한을 선택해 주세요' });
 
   const expected = role === 'admin' ? process.env.ADMIN_PASSWORD : process.env.VIEWER_PASSWORD;

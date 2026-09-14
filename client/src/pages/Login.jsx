@@ -12,7 +12,7 @@ export default function Login() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
-    if (!name.trim()) return setError('사번을 입력해 주세요');
+    if (!/^\d{4}$/.test(name)) return setError('사번은 숫자 4자리로 입력해 주세요 (예: 4220)');
     setLoading(true);
     try {
       await login(name.trim(), password, role);
@@ -32,7 +32,16 @@ export default function Login() {
 
         <label>
           사번
-          <input type="text" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+          <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]{4}"
+            maxLength={4}
+            placeholder="4220"
+            value={name}
+            onChange={(e) => setName(e.target.value.replace(/\D/g, '').slice(0, 4))}
+            autoFocus
+          />
         </label>
         <label>
           비밀번호
