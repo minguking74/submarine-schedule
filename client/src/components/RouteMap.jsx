@@ -26,47 +26,47 @@ const CABLE_MAPS = {
     lines: SJC2_LINES,
     legendPos: { x: WIDTH - 190, y: 20 },
     points: {
-      changi: { lon: 103.987, lat: 1.389, city: '창이', country: '싱가포르', pos: 'b' },
-      songkhla: { lon: 100.5951, lat: 7.1988, city: '송클라', country: '태국', pos: 'l' },
-      quynhon: { lon: 109.2197, lat: 13.7830, city: '꾸이년', country: '베트남' },
-      chunghomkok: { lon: 114.2030, lat: 22.2220, city: '청함콕', country: '홍콩', pos: 'l' },
-      fangshan: { lon: 120.6621, lat: 22.2493, city: '팡산', country: '대만' },
-      tanshui: { lon: 121.4626, lat: 25.1814, city: '단수이', country: '대만', pos: 'l' },
-      lingang: { lon: 121.8961, lat: 30.9357, city: '린강', country: '중국' },
-      busan: { lon: 128.9993, lat: 35.1701, city: '부산', country: '한국', pos: 'b' },
-      shima: { lon: 136.8744, lat: 34.3368, city: '시마', country: '일본', pos: 't' },
-      chikura: { lon: 139.9547, lat: 34.9767, city: '치쿠라', country: '일본', pos: 'b' },
+      changi: { lon: 103.987, lat: 1.389, city: 'Changi', country: 'Singapore', pos: 'b' },
+      songkhla: { lon: 100.5951, lat: 7.1988, city: 'Songkhla', country: 'Thailand', pos: 'l' },
+      quynhon: { lon: 109.2197, lat: 13.7830, city: 'Quy Nhon', country: 'Vietnam' },
+      chunghomkok: { lon: 114.2030, lat: 22.2220, city: 'Chung Hom Kok', country: 'Hong Kong', pos: 'l' },
+      fangshan: { lon: 120.6621, lat: 22.2493, city: 'Fangshan', country: 'Taiwan' },
+      tanshui: { lon: 121.4626, lat: 25.1814, city: 'Tanshui', country: 'Taiwan', pos: 'l' },
+      lingang: { lon: 121.8961, lat: 30.9357, city: 'Lingang', country: 'China' },
+      busan: { lon: 128.9993, lat: 35.1701, city: 'Busan', country: 'Korea', pos: 'b' },
+      shima: { lon: 136.8744, lat: 34.3368, city: 'Shima', country: 'Japan', pos: 't' },
+      chikura: { lon: 139.9547, lat: 34.9767, city: 'Chikura', country: 'Japan', pos: 'b' },
     },
   },
   e2a: {
-    subtitle: 'Asia ↔ US West Coast · 12,500km · RFS 2029(예정)',
+    subtitle: 'Asia ↔ US West Coast · 12,500km · RFS 2029 (Planned)',
     bounds: { lonMin: 114, lonMax: 246, latMin: 12, latMax: 53 },
     dashed: true,
     lines: E2A_LINES,
     legendPos: { x: WIDTH - 190, y: 20 },
     points: {
-      toucheng: { lon: 121.8015, lat: 24.8636, city: '터우청', country: '대만' },
-      itoshima: { lon: 130.1505, lat: 33.5975, city: '이토시마', country: '일본', pos: 'b' },
-      busan: { lon: 128.9993, lat: 35.1701, city: '부산', country: '한국', pos: 't' },
-      maruyama: { lon: 139.9755, lat: 35.0054, city: '마루야마', country: '일본' },
-      tomakomai: { lon: 141.6032, lat: 42.6361, city: '토마코마이', country: '일본' },
-      morrobay: { lon: 239.1528, lat: 35.3667, city: '모로베이', country: '미국', pos: 'l' },
+      toucheng: { lon: 121.8015, lat: 24.8636, city: 'Toucheng', country: 'Taiwan' },
+      itoshima: { lon: 130.1505, lat: 33.5975, city: 'Itoshima', country: 'Japan', pos: 'b' },
+      busan: { lon: 128.9993, lat: 35.1701, city: 'Busan', country: 'Korea', pos: 't' },
+      maruyama: { lon: 139.9755, lat: 35.0054, city: 'Maruyama', country: 'Japan' },
+      tomakomai: { lon: 141.6032, lat: 42.6361, city: 'Tomakomai', country: 'Japan' },
+      morrobay: { lon: 239.1528, lat: 35.3667, city: 'Morro Bay', country: 'USA', pos: 'l' },
     },
   },
   pae: {
-    subtitle: 'Southeast Asia ↔ Japan · RFS 2031(예정)',
+    subtitle: 'Southeast Asia ↔ Japan · RFS: To be confirmed',
     bounds: { lonMin: 94, lonMax: 153, latMin: -6, latMax: 49 },
     dashed: true,
     legendPos: { x: WIDTH - 190, y: 20 },
     points: {
-      tuas: { lon: 103.6471, lat: 1.3382, city: '투아스', country: '싱가포르', pos: 'b' },
-      quynhon: { lon: 109.2197, lat: 13.7830, city: '꾸이년', country: '베트남' },
-      hongkong: { lon: 114.2030, lat: 22.2220, city: '홍콩', country: '', pos: 'l' },
-      shantou: { lon: 116.6755, lat: 23.3546, city: '산터우', country: '중국' },
-      lingang: { lon: 121.8961, lat: 30.9357, city: '린강', country: '중국' },
-      qingdao: { lon: 120.3426, lat: 36.0871, city: '칭다오', country: '중국' },
-      busan: { lon: 128.9993, lat: 35.1701, city: '부산', country: '한국' },
-      minamiboso: { lon: 139.9610, lat: 34.9741, city: '미나미보소', country: '일본' },
+      tuas: { lon: 103.6471, lat: 1.3382, city: 'Tuas', country: 'Singapore', pos: 'b' },
+      quynhon: { lon: 109.2197, lat: 13.7830, city: 'Quy Nhon', country: 'Vietnam' },
+      hongkong: { lon: 114.2030, lat: 22.2220, city: 'Hong Kong', country: '', pos: 'l' },
+      shantou: { lon: 116.6755, lat: 23.3546, city: 'Shantou', country: 'China' },
+      lingang: { lon: 121.8961, lat: 30.9357, city: 'Lingang', country: 'China' },
+      qingdao: { lon: 120.3426, lat: 36.0871, city: 'Qingdao', country: 'China' },
+      busan: { lon: 128.9993, lat: 35.1701, city: 'Busan', country: 'Korea' },
+      minamiboso: { lon: 139.9610, lat: 34.9741, city: 'Minamiboso', country: 'Japan' },
     },
     // 실제 노선 데이터가 아직 공개되지 않아 랜딩 포인트를 순서대로 잇는 추정 구간
     edges: [
@@ -166,7 +166,7 @@ export default function RouteMap({ cableKey }) {
       <div className="page-sub" style={{ marginTop: 8 }}>
         {lines
           ? '출처: TeleGeography submarinecablemap.com (랜딩 포인트·노선 좌표). 해안선은 Natural Earth 데이터를 단순화했습니다.'
-          : '※ PAE는 submarinecablemap.com에 아직 등록되지 않아, 랜딩 포인트(실좌표)를 순서대로 이은 추정 노선입니다.'}
+          : 'Route: To be confirmed — PAE is not yet listed on submarinecablemap.com. Landing points are approximate.'}
       </div>
     </div>
   );
