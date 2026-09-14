@@ -3,6 +3,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line,
 } from 'recharts';
 import { api } from '../api.js';
+import RouteMap from '../components/RouteMap.jsx';
 
 function fmt(n, digits = 1) {
   if (n === null || n === undefined || Number.isNaN(n)) return '-';
@@ -115,6 +116,8 @@ export default function Dashboard() {
           <div className="kpi-value">{data.segment_s_utilization_pct}<span className="kpi-unit">%</span></div>
         </div>
       </div>
+
+      <RouteMap cableKey="sjc2" />
 
       <div className="card">
         <h3 className="card-title">🌊 Segment S — Sold vs Available (Gbps)</h3>

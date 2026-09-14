@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
+import RouteMap from '../components/RouteMap.jsx';
 
 export default function CableOverview({ cableKey }) {
   const { isAdmin } = useAuth();
@@ -54,6 +55,7 @@ export default function CableOverview({ cableKey }) {
 
       {!editing ? (
         <>
+          <RouteMap cableKey={cableKey} />
           <div className="card">
             <h3 className="card-title">개요</h3>
             <p style={{ lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{cable.summary || '등록된 개요가 없습니다.'}</p>
