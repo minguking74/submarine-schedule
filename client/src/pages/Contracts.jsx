@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api.js';
 import DataTable from '../components/DataTable.jsx';
+import { useAuth } from '../auth.jsx';
 
 function money(v) {
   if (v === null || v === undefined) return '-';
@@ -43,6 +44,7 @@ const COLUMNS = [
 ];
 
 export default function Contracts() {
+  const { isAdmin } = useAuth();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('ALL');
@@ -94,6 +96,7 @@ export default function Contracts() {
 
       <div className="card">
         <DataTable
+          readOnly={!isAdmin}
           columns={COLUMNS}
           rows={filtered}
           onCreate={async (v) => { await api.post('/contracts', v); reload(); }}

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { getFxRate, setFxRate, logActivity } from '../calc.js';
+import { requireAdmin } from '../auth.js';
 
 const router = Router();
 
@@ -7,7 +8,7 @@ router.get('/', async (req, res) => {
   res.json({ fx_rate: await getFxRate() });
 });
 
-router.put('/', async (req, res) => {
+router.put('/', requireAdmin, async (req, res) => {
   const { fx_rate } = req.body;
   if (fx_rate !== undefined) {
     const prev = await getFxRate();

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db.js';
 import { enrichContract, getFxRate, logActivity } from '../calc.js';
+import { requireAdmin } from '../auth.js';
 
 const COLUMNS = [
   'no', 'customer', 'contract_type', 'segment_s', 'segment_l', 'a_end', 'z_end',
@@ -22,7 +23,7 @@ router.get('/:id', async (req, res) => {
   res.json(enrichContract(row, await getFxRate()));
 });
 
-router.post('/', async (req, res) => {
+router.post('/', requireAdmin, async (req, res) => {
   const payload = Object.fromEntries(COLUMNS.map((c) => [c, req.body[c] ?? null]));
   const info = await db.prepare(`
     INSERT INTO contracts (${COLUMNS.join(', ')})
@@ -34,7 +35,7 @@ router.post('/', async (req, res) => {
   res.status(201).json(enrichContract(row, await getFxRate()));
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireAdmin, async (req, res) => {
   const existing = await db.prepare(`SELECT * FROM contracts WHERE id = ?`).get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'not found' });
   const payload = Object.fromEntries(COLUMNS.map((c) => [c, req.body[c] ?? existing[c]]));
@@ -54,7 +55,7 @@ router.put('/:id', async (req, res) => {
   res.json(enrichContract(row, await getFxRate()));
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAdmin, async (req, res) => {
   const existing = await db.prepare(`SELECT * FROM contracts WHERE id = ?`).get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'not found' });
   await db.prepare(`DELETE FROM contracts WHERE id = ?`).run(req.params.id);

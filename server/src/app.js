@@ -6,10 +6,20 @@ import dashboardRouter from './routes/dashboard.js';
 import revenueRouter from './routes/revenue.js';
 import settingsRouter from './routes/settings.js';
 import logRouter from './routes/log.js';
+import authRouter from './routes/auth.js';
+import cablesRouter from './routes/cables.js';
+import chatbotRouter from './routes/chatbot.js';
+import { requireAuth } from './auth.js';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+app.get('/api/health', (req, res) => res.json({ ok: true }));
+app.use('/api/auth', authRouter);
+
+// Everything registered below requires a logged-in session (viewer or admin).
+app.use('/api', requireAuth);
 
 app.use('/api/capacity-design', makeCrudRouter({
   table: 'capacity_design',
@@ -63,7 +73,7 @@ app.use('/api/dashboard', dashboardRouter);
 app.use('/api/revenue', revenueRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/log', logRouter);
-
-app.get('/api/health', (req, res) => res.json({ ok: true }));
+app.use('/api/cables', cablesRouter);
+app.use('/api/chatbot', chatbotRouter);
 
 export default app;
