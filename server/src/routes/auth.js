@@ -7,13 +7,12 @@ const router = Router();
 router.post('/login', async (req, res) => {
   const name = String(req.body.name || '').trim();
   const password = String(req.body.password || '');
-  if (!name) return res.status(400).json({ error: '이름을 입력해 주세요' });
+  const role = String(req.body.role || '');
+  if (!name) return res.status(400).json({ error: '사번을 입력해 주세요' });
+  if (role !== 'admin' && role !== 'viewer') return res.status(400).json({ error: '권한을 선택해 주세요' });
 
-  let role = null;
-  if (password && password === process.env.ADMIN_PASSWORD) role = 'admin';
-  else if (password && password === process.env.VIEWER_PASSWORD) role = 'viewer';
-
-  if (!role) return res.status(401).json({ error: '비밀번호가 올바르지 않습니다' });
+  const expected = role === 'admin' ? process.env.ADMIN_PASSWORD : process.env.VIEWER_PASSWORD;
+  if (!password || password !== expected) return res.status(401).json({ error: '비밀번호가 올바르지 않습니다' });
 
   await db.prepare(`INSERT INTO login_log (name, role, user_agent) VALUES (?, ?, ?)`)
     .run(name, role, req.headers['user-agent'] || null);

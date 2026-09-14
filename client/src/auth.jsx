@@ -22,8 +22,8 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
   }, []);
 
-  async function login(name, password) {
-    const res = await api.post('/auth/login', { name, password });
+  async function login(name, password, role) {
+    const res = await api.post('/auth/login', { name, password, role });
     localStorage.setItem('auth_token', res.token);
     localStorage.setItem('auth_name', res.name);
     localStorage.setItem('auth_role', res.role);
