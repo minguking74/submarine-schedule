@@ -1,12 +1,12 @@
 import { db } from './db.js';
 
-export function getFxRate() {
-  const row = db.prepare(`SELECT value FROM settings WHERE key = 'fx_rate'`).get();
+export async function getFxRate() {
+  const row = await db.prepare(`SELECT value FROM settings WHERE key = 'fx_rate'`).get();
   return row ? Number(row.value) : 1380;
 }
 
-export function setFxRate(rate) {
-  db.prepare(
+export async function setFxRate(rate) {
+  await db.prepare(
     `INSERT INTO settings (key, value) VALUES ('fx_rate', ?)
      ON CONFLICT(key) DO UPDATE SET value = excluded.value`
   ).run(String(rate));
@@ -25,7 +25,7 @@ function toUsd(amount, currency, rate) {
 }
 
 /** Enriches a raw contract row with every derived field the Excel workbook computed via formula. */
-export function enrichContract(row, rate = getFxRate()) {
+export function enrichContract(row, rate) {
   const bandwidth = (Number(row.if100g) || 0) + (Number(row.if400g) || 0);
   const endDate = row.start_date && row.duration_months
     ? addMonths(row.start_date, row.duration_months)
@@ -63,9 +63,9 @@ export function enrichContract(row, rate = getFxRate()) {
   };
 }
 
-export function listEnrichedContracts() {
-  const rate = getFxRate();
-  const rows = db.prepare(`SELECT * FROM contracts ORDER BY id`).all();
+export async function listEnrichedContracts() {
+  const rate = await getFxRate();
+  const rows = await db.prepare(`SELECT * FROM contracts ORDER BY id`).all();
   return rows.map((r) => enrichContract(r, rate));
 }
 
@@ -90,8 +90,8 @@ function contractMonthlyRevenue(contract, year, month) {
 }
 
 /** Builds Revenue_Monthly-equivalent rows for a [fromYear, toYear] range, computed on the fly. */
-export function buildRevenueMonthly(fromYear, toYear) {
-  const contracts = listEnrichedContracts();
+export async function buildRevenueMonthly(fromYear, toYear) {
+  const contracts = await listEnrichedContracts();
   const rows = [];
   for (const c of contracts) {
     for (let year = fromYear; year <= toYear; year++) {
@@ -119,10 +119,10 @@ export function buildRevenueMonthly(fromYear, toYear) {
   return rows;
 }
 
-export function buildRevenueYearly(fromYear, toYear) {
-  const rate = getFxRate();
-  const monthly = buildRevenueMonthly(fromYear, toYear);
-  const contracts = listEnrichedContracts();
+export async function buildRevenueYearly(fromYear, toYear) {
+  const rate = await getFxRate();
+  const monthly = await buildRevenueMonthly(fromYear, toYear);
+  const contracts = await listEnrichedContracts();
   const years = [];
   for (let year = fromYear; year <= toYear; year++) {
     const rowsForYear = monthly.filter((r) => r.year === year);
@@ -143,6 +143,6 @@ export function buildRevenueYearly(fromYear, toYear) {
   return years;
 }
 
-export function logActivity(message) {
-  db.prepare(`INSERT INTO activity_log (message) VALUES (?)`).run(message);
+export async function logActivity(message) {
+  await db.prepare(`INSERT INTO activity_log (message) VALUES (?)`).run(message);
 }

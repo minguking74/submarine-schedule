@@ -3,18 +3,18 @@ import { getFxRate, setFxRate, logActivity } from '../calc.js';
 
 const router = Router();
 
-router.get('/', (req, res) => {
-  res.json({ fx_rate: getFxRate() });
+router.get('/', async (req, res) => {
+  res.json({ fx_rate: await getFxRate() });
 });
 
-router.put('/', (req, res) => {
+router.put('/', async (req, res) => {
   const { fx_rate } = req.body;
   if (fx_rate !== undefined) {
-    const prev = getFxRate();
-    setFxRate(Number(fx_rate));
-    logActivity(`[settings] 원/달러 기준환율 변경: ${prev} → ${fx_rate}`);
+    const prev = await getFxRate();
+    await setFxRate(Number(fx_rate));
+    await logActivity(`[settings] 원/달러 기준환율 변경: ${prev} → ${fx_rate}`);
   }
-  res.json({ fx_rate: getFxRate() });
+  res.json({ fx_rate: await getFxRate() });
 });
 
 export default router;

@@ -3,9 +3,9 @@ import { db } from '../db.js';
 
 const router = Router();
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const limit = Number(req.query.limit) || 200;
-  const rows = db.prepare(`SELECT * FROM activity_log ORDER BY id DESC LIMIT ?`).all(limit);
+  const rows = await db.prepare(`SELECT * FROM activity_log ORDER BY id DESC LIMIT ?`).all(limit);
   res.json(rows);
 });
 
