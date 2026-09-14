@@ -44,10 +44,10 @@ npm run dev         # server(:4000) + client(:5173) 동시 실행
 ## 로그인 / 권한
 
 admin/viewer 공유 비밀번호 기반 로그인이 있습니다 (`server/.env`의 `ADMIN_PASSWORD`,
-`VIEWER_PASSWORD`, `JWT_SECRET`). 로그인 시 사번을 입력하고 admin/viewer 권한을 선택한 뒤,
-선택한 권한에 해당하는 비밀번호를 입력합니다. 관리자는 "로그인 기록"
-메뉴에서 누가 언제 로그인했는지 확인할 수 있습니다. viewer는 모든 화면을 조회만 할 수
-있고 추가/수정/삭제는 admin만 가능합니다 (서버 API도 동일하게 제한됩니다).
+`VIEWER_PASSWORD`, `JWT_SECRET`). 로그인 시 사번(숫자 4자리, 예: `4220`)을 입력하고
+admin/viewer 권한을 선택한 뒤, 선택한 권한에 해당하는 비밀번호를 입력합니다. 관리자는
+"로그인 기록" 메뉴에서 누가 언제 로그인했는지 확인할 수 있습니다. viewer는 모든 화면을
+조회만 할 수 있고 추가/수정/삭제는 admin만 가능합니다 (서버 API도 동일하게 제한됩니다).
 
 ## 케이블 프로젝트 / 외부 자료 / 챗봇
 
@@ -59,6 +59,19 @@ admin/viewer 공유 비밀번호 기반 로그인이 있습니다 (`server/.env`
   `LLM_PROVIDER=internal`, `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`을 채우면 됩니다
   (Anthropic API를 쓰는 경우 `LLM_PROVIDER=anthropic`). Vercel 배포본에도 동일한 환경변수를
   추가해야 합니다.
+
+## Vercel 배포 (api 번들)
+
+npm workspaces 모노레포 구조에서 Vercel의 원격 빌드가 `express`/`jsonwebtoken` 등
+서버 의존성을 간헐적으로 누락시키는 문제가 있었습니다. 그래서 `server/src/app.js`를
+esbuild로 의존성까지 전부 포함한 단일 파일(`api/index.generated.cjs`)로 미리
+번들링해서 git에 커밋해두고, `vercel.json`이 그 번들을 그대로 배포하도록
+구성했습니다. **`server/src` 코드를 수정하면 반드시** 아래 명령으로 번들을
+다시 생성하고 함께 커밋해야 배포본에 반영됩니다:
+
+```bash
+npm run build:api
+```
 
 ## 데이터 정확성 참고사항
 
