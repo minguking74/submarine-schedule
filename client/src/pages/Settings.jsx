@@ -108,9 +108,10 @@ export default function Settings() {
       <div className="card">
         <h3 className="card-title">엑셀 일괄 다운로드 / 업로드</h3>
         <div className="page-sub">
-          전체 데이터를 시트별로 엑셀 파일 하나에 담아 내려받아 보고용으로 전달할 수 있습니다.
+          전체 데이터(Dashboard 요약 포함)를 시트별로 엑셀 파일 하나에 담아 내려받아 보고용으로 전달할 수 있습니다.
           전달받은 파일에서 값을 수정한 뒤 다시 업로드하면 변경/추가된 행만 반영됩니다
-          (기존 행은 A열의 ID로 식별하니 ID 값은 바꾸지 마세요. 시트에서 지운 행은 삭제되지 않습니다).
+          (기존 행은 A열의 ID로 식별하니 ID 값은 바꾸지 마세요. 시트에서 지운 행은 삭제되지 않습니다.
+          Dashboard 시트는 참고용 스냅샷이라 업로드해도 반영되지 않습니다).
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 12, flexWrap: 'wrap' }}>
           <button className="btn-sm btn-primary" onClick={downloadExcel} disabled={downloading}>

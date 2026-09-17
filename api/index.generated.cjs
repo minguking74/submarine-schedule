@@ -103067,6 +103067,81 @@ function cellForExport(col, rawValue) {
   if (rawValue instanceof Date) return rawValue.toISOString().slice(0, 10);
   return String(rawValue);
 }
+function round2(v) {
+  return typeof v === "number" ? Math.round(v * 100) / 100 : v;
+}
+function addPlainSheet(wb, name, columns, rows) {
+  const ws = wb.addWorksheet(name);
+  ws.columns = columns.map((c) => ({ header: c.label, key: c.key, width: Math.max(12, c.label.length + 2) }));
+  ws.getRow(1).font = { bold: true };
+  ws.getRow(1).eachCell((cell) => {
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE8EEF7" } };
+  });
+  ws.views = [{ state: "frozen", ySplit: 1 }];
+  for (const r of rows) ws.addRow(r);
+  return ws;
+}
+var SEGMENT_DETAIL_COLUMNS = [
+  { key: "segment_label", label: "Segment" },
+  { key: "design", label: "Design" },
+  { key: "equip100", label: "Equip 100G" },
+  { key: "equip400", label: "Equip 400G" },
+  { key: "construct100", label: "\uAD6C\uCD95\uC911 100G" },
+  { key: "construct400", label: "\uAD6C\uCD95\uC911 400G" },
+  { key: "sold100", label: "Sold 100G" },
+  { key: "sold400", label: "Sold 400G" },
+  { key: "avail100", label: "Avail 100G" },
+  { key: "avail400", label: "Avail 400G" },
+  { key: "sold_total", label: "Sold \uD569\uACC4" },
+  { key: "avail_total", label: "Avail \uD569\uACC4" }
+];
+async function addDashboardSheets(wb) {
+  const dash = await buildDashboard();
+  addPlainSheet(wb, "Dashboard_\uC694\uC57D", [
+    { key: "item", label: "\uD56D\uBAA9" },
+    { key: "value", label: "\uAC12" }
+  ], [
+    { item: "\uAE30\uC900\uC77C", value: (/* @__PURE__ */ new Date()).toISOString().slice(0, 10) },
+    { item: "\uAE30\uC900\uD658\uC728(KRW/USD)", value: dash.fx_rate },
+    { item: "KPI \uC5F0\uB3C4", value: dash.current_kpi?.year ?? "" },
+    { item: "KPI \uBA54\uBAA8", value: dash.current_kpi?.memo ?? "" },
+    { item: "Active \uACC4\uC57D \uC218", value: dash.headline.active_contracts_count },
+    { item: "Active \uCD1D \uB300\uC5ED\uD3ED(Gbps)", value: round2(dash.headline.active_bandwidth_gbps) },
+    { item: "Lease MRC(\uC5B5\uC6D0/\uC6D4)", value: round2(dash.headline.lease_mrc_eok) },
+    { item: "\uB204\uC801 \uB9E4\uCD9C(\uC5B5\uC6D0)", value: round2(dash.headline.cumulative_revenue_eok) },
+    { item: "Segment S \uC0AC\uC6A9\uB960(%)", value: dash.segment_s_utilization_pct },
+    { item: "Lease ARR(\uC5B5\uC6D0/\uB144)", value: round2(dash.revenue_summary.lease_arr_eok) },
+    { item: "IRU OTC(\uC5B5\uC6D0)", value: round2(dash.revenue_summary.iru_otc_eok) },
+    { item: "IRU \uC5F0O&M(\uC5B5\uC6D0)", value: round2(dash.revenue_summary.iru_om_eok) }
+  ]);
+  addPlainSheet(wb, "Dashboard_SegmentS", SEGMENT_DETAIL_COLUMNS, [...dash.segment_s.rows, dash.segment_s.total]);
+  addPlainSheet(wb, "Dashboard_SegmentL", SEGMENT_DETAIL_COLUMNS, [...dash.segment_l.rows, dash.segment_l.total]);
+  addPlainSheet(wb, "Dashboard_Funnel", [
+    { key: "stage", label: "Stage" },
+    { key: "count", label: "\uAC74\uC218" },
+    { key: "bandwidth_gbps", label: "BW(Gbps)" }
+  ], dash.funnel_summary);
+  addPlainSheet(wb, "Dashboard_Lightup", [
+    { key: "status", label: "Status" },
+    { key: "qty_gbps", label: "Qty(Gbps)" },
+    { key: "est_cost_usd", label: "Est. Cost($)" }
+  ], dash.lightup_summary.map((l2) => ({ ...l2, est_cost_usd: round2(l2.est_cost_usd) })));
+  addPlainSheet(wb, "Dashboard_\uC5F0\uB3C4\uBCC4\uB9E4\uCD9C", [
+    { key: "year", label: "\uC5F0\uB3C4" },
+    { key: "lease_revenue_eok", label: "Lease \uB9E4\uCD9C(\uC5B5\uC6D0)" },
+    { key: "iru_otc_revenue_eok", label: "IRU OTC(\uC5B5\uC6D0)" },
+    { key: "iru_om_revenue_eok", label: "IRU O&M(\uC5B5\uC6D0)" },
+    { key: "total_revenue_eok", label: "\uCD1D\uB9E4\uCD9C(\uC5B5\uC6D0)" },
+    { key: "contracted_bandwidth_gbps", label: "\uC2E0\uADDC\uACC4\uC57D BW(Gbps)" },
+    { key: "new_contract_count", label: "\uC2E0\uADDC\uACC4\uC57D \uAC74\uC218" }
+  ], dash.revenue_yearly.map((y) => ({
+    ...y,
+    lease_revenue_eok: round2(y.lease_revenue_eok),
+    iru_otc_revenue_eok: round2(y.iru_otc_revenue_eok),
+    iru_om_revenue_eok: round2(y.iru_om_revenue_eok),
+    total_revenue_eok: round2(y.total_revenue_eok)
+  })));
+}
 async function buildWorkbook() {
   const wb = new import_exceljs.default.Workbook();
   wb.creator = "SJC2 Capacity Schedule";
@@ -103089,6 +103164,7 @@ async function buildWorkbook() {
       ws.addRow(rowObj);
     }
   }
+  await addDashboardSheets(wb);
   return wb;
 }
 function cellToValue(cell, col) {

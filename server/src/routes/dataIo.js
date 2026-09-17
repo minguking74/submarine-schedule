@@ -5,6 +5,7 @@ import { db } from '../db.js';
 import { requireAdmin } from '../auth.js';
 import { logActivity } from '../calc.js';
 import { TABLE_DEFS } from '../tableDefs.js';
+import { buildDashboard } from '../dashboard.js';
 
 const router = Router();
 const upload = multer({
@@ -21,6 +22,93 @@ function cellForExport(col, rawValue) {
   if (col.number) return Number(rawValue);
   if (rawValue instanceof Date) return rawValue.toISOString().slice(0, 10);
   return String(rawValue);
+}
+
+function round2(v) {
+  return typeof v === 'number' ? Math.round(v * 100) / 100 : v;
+}
+
+function addPlainSheet(wb, name, columns, rows) {
+  const ws = wb.addWorksheet(name);
+  ws.columns = columns.map((c) => ({ header: c.label, key: c.key, width: Math.max(12, c.label.length + 2) }));
+  ws.getRow(1).font = { bold: true };
+  ws.getRow(1).eachCell((cell) => {
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EEF7' } };
+  });
+  ws.views = [{ state: 'frozen', ySplit: 1 }];
+  for (const r of rows) ws.addRow(r);
+  return ws;
+}
+
+const SEGMENT_DETAIL_COLUMNS = [
+  { key: 'segment_label', label: 'Segment' },
+  { key: 'design', label: 'Design' },
+  { key: 'equip100', label: 'Equip 100G' },
+  { key: 'equip400', label: 'Equip 400G' },
+  { key: 'construct100', label: '구축중 100G' },
+  { key: 'construct400', label: '구축중 400G' },
+  { key: 'sold100', label: 'Sold 100G' },
+  { key: 'sold400', label: 'Sold 400G' },
+  { key: 'avail100', label: 'Avail 100G' },
+  { key: 'avail400', label: 'Avail 400G' },
+  { key: 'sold_total', label: 'Sold 합계' },
+  { key: 'avail_total', label: 'Avail 합계' },
+];
+
+// Dashboard is a computed/aggregated view (not a raw editable table), so these sheets
+// are export-only reporting snapshots — /import intentionally ignores them since it
+// only looks up sheets by TABLE_DEFS[].sheet name.
+async function addDashboardSheets(wb) {
+  const dash = await buildDashboard();
+
+  addPlainSheet(wb, 'Dashboard_요약', [
+    { key: 'item', label: '항목' },
+    { key: 'value', label: '값' },
+  ], [
+    { item: '기준일', value: new Date().toISOString().slice(0, 10) },
+    { item: '기준환율(KRW/USD)', value: dash.fx_rate },
+    { item: 'KPI 연도', value: dash.current_kpi?.year ?? '' },
+    { item: 'KPI 메모', value: dash.current_kpi?.memo ?? '' },
+    { item: 'Active 계약 수', value: dash.headline.active_contracts_count },
+    { item: 'Active 총 대역폭(Gbps)', value: round2(dash.headline.active_bandwidth_gbps) },
+    { item: 'Lease MRC(억원/월)', value: round2(dash.headline.lease_mrc_eok) },
+    { item: '누적 매출(억원)', value: round2(dash.headline.cumulative_revenue_eok) },
+    { item: 'Segment S 사용률(%)', value: dash.segment_s_utilization_pct },
+    { item: 'Lease ARR(억원/년)', value: round2(dash.revenue_summary.lease_arr_eok) },
+    { item: 'IRU OTC(억원)', value: round2(dash.revenue_summary.iru_otc_eok) },
+    { item: 'IRU 연O&M(억원)', value: round2(dash.revenue_summary.iru_om_eok) },
+  ]);
+
+  addPlainSheet(wb, 'Dashboard_SegmentS', SEGMENT_DETAIL_COLUMNS, [...dash.segment_s.rows, dash.segment_s.total]);
+  addPlainSheet(wb, 'Dashboard_SegmentL', SEGMENT_DETAIL_COLUMNS, [...dash.segment_l.rows, dash.segment_l.total]);
+
+  addPlainSheet(wb, 'Dashboard_Funnel', [
+    { key: 'stage', label: 'Stage' },
+    { key: 'count', label: '건수' },
+    { key: 'bandwidth_gbps', label: 'BW(Gbps)' },
+  ], dash.funnel_summary);
+
+  addPlainSheet(wb, 'Dashboard_Lightup', [
+    { key: 'status', label: 'Status' },
+    { key: 'qty_gbps', label: 'Qty(Gbps)' },
+    { key: 'est_cost_usd', label: 'Est. Cost($)' },
+  ], dash.lightup_summary.map((l) => ({ ...l, est_cost_usd: round2(l.est_cost_usd) })));
+
+  addPlainSheet(wb, 'Dashboard_연도별매출', [
+    { key: 'year', label: '연도' },
+    { key: 'lease_revenue_eok', label: 'Lease 매출(억원)' },
+    { key: 'iru_otc_revenue_eok', label: 'IRU OTC(억원)' },
+    { key: 'iru_om_revenue_eok', label: 'IRU O&M(억원)' },
+    { key: 'total_revenue_eok', label: '총매출(억원)' },
+    { key: 'contracted_bandwidth_gbps', label: '신규계약 BW(Gbps)' },
+    { key: 'new_contract_count', label: '신규계약 건수' },
+  ], dash.revenue_yearly.map((y) => ({
+    ...y,
+    lease_revenue_eok: round2(y.lease_revenue_eok),
+    iru_otc_revenue_eok: round2(y.iru_otc_revenue_eok),
+    iru_om_revenue_eok: round2(y.iru_om_revenue_eok),
+    total_revenue_eok: round2(y.total_revenue_eok),
+  })));
 }
 
 async function buildWorkbook() {
@@ -47,6 +135,8 @@ async function buildWorkbook() {
       ws.addRow(rowObj);
     }
   }
+
+  await addDashboardSheets(wb);
 
   return wb;
 }
