@@ -103064,107 +103064,298 @@ var upload = (0, import_multer.default)({
 function cellForExport(col, rawValue) {
   if (rawValue === null || rawValue === void 0) return null;
   if (col.number) return Number(rawValue);
+  if (col.date) {
+    const d = rawValue instanceof Date ? rawValue : new Date(rawValue);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
   if (rawValue instanceof Date) return rawValue.toISOString().slice(0, 10);
   return String(rawValue);
 }
-function round2(v) {
-  return typeof v === "number" ? Math.round(v * 100) / 100 : v;
-}
-function addPlainSheet(wb, name, columns, rows) {
-  const ws = wb.addWorksheet(name);
-  ws.columns = columns.map((c) => ({ header: c.label, key: c.key, width: Math.max(12, c.label.length + 2) }));
-  ws.getRow(1).font = { bold: true };
-  ws.getRow(1).eachCell((cell) => {
+function styleHeaderRow(row) {
+  row.font = { bold: true };
+  row.eachCell((cell) => {
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE8EEF7" } };
   });
-  ws.views = [{ state: "frozen", ySplit: 1 }];
-  for (const r of rows) ws.addRow(r);
-  return ws;
 }
-var SEGMENT_DETAIL_COLUMNS = [
-  { key: "segment_label", label: "Segment" },
-  { key: "design", label: "Design" },
-  { key: "equip100", label: "Equip 100G" },
-  { key: "equip400", label: "Equip 400G" },
-  { key: "construct100", label: "\uAD6C\uCD95\uC911 100G" },
-  { key: "construct400", label: "\uAD6C\uCD95\uC911 400G" },
-  { key: "sold100", label: "Sold 100G" },
-  { key: "sold400", label: "Sold 400G" },
-  { key: "avail100", label: "Avail 100G" },
-  { key: "avail400", label: "Avail 400G" },
-  { key: "sold_total", label: "Sold \uD569\uACC4" },
-  { key: "avail_total", label: "Avail \uD569\uACC4" }
+var YEAR_FROM = 2023;
+var YEAR_TO = 2028;
+var SEGMENT_L_DEFS = [
+  { segmentId: "CLS-GS", flagCol: "AC" },
+  { segmentId: "CLS-SG3", flagCol: "AD" },
+  { segmentId: "CLS-Mega-i", flagCol: "AE" }
 ];
-async function addDashboardSheets(wb) {
-  const dash = await buildDashboard();
-  addPlainSheet(wb, "Dashboard_\uC694\uC57D", [
-    { key: "item", label: "\uD56D\uBAA9" },
-    { key: "value", label: "\uAC12" }
-  ], [
-    { item: "\uAE30\uC900\uC77C", value: (/* @__PURE__ */ new Date()).toISOString().slice(0, 10) },
-    { item: "\uAE30\uC900\uD658\uC728(KRW/USD)", value: dash.fx_rate },
-    { item: "KPI \uC5F0\uB3C4", value: dash.current_kpi?.year ?? "" },
-    { item: "KPI \uBA54\uBAA8", value: dash.current_kpi?.memo ?? "" },
-    { item: "Active \uACC4\uC57D \uC218", value: dash.headline.active_contracts_count },
-    { item: "Active \uCD1D \uB300\uC5ED\uD3ED(Gbps)", value: round2(dash.headline.active_bandwidth_gbps) },
-    { item: "Lease MRC(\uC5B5\uC6D0/\uC6D4)", value: round2(dash.headline.lease_mrc_eok) },
-    { item: "\uB204\uC801 \uB9E4\uCD9C(\uC5B5\uC6D0)", value: round2(dash.headline.cumulative_revenue_eok) },
-    { item: "Segment S \uC0AC\uC6A9\uB960(%)", value: dash.segment_s_utilization_pct },
-    { item: "Lease ARR(\uC5B5\uC6D0/\uB144)", value: round2(dash.revenue_summary.lease_arr_eok) },
-    { item: "IRU OTC(\uC5B5\uC6D0)", value: round2(dash.revenue_summary.iru_otc_eok) },
-    { item: "IRU \uC5F0O&M(\uC5B5\uC6D0)", value: round2(dash.revenue_summary.iru_om_eok) }
-  ]);
-  addPlainSheet(wb, "Dashboard_SegmentS", SEGMENT_DETAIL_COLUMNS, [...dash.segment_s.rows, dash.segment_s.total]);
-  addPlainSheet(wb, "Dashboard_SegmentL", SEGMENT_DETAIL_COLUMNS, [...dash.segment_l.rows, dash.segment_l.total]);
-  addPlainSheet(wb, "Dashboard_Funnel", [
-    { key: "stage", label: "Stage" },
-    { key: "count", label: "\uAC74\uC218" },
-    { key: "bandwidth_gbps", label: "BW(Gbps)" }
-  ], dash.funnel_summary);
-  addPlainSheet(wb, "Dashboard_Lightup", [
-    { key: "status", label: "Status" },
-    { key: "qty_gbps", label: "Qty(Gbps)" },
-    { key: "est_cost_usd", label: "Est. Cost($)" }
-  ], dash.lightup_summary.map((l2) => ({ ...l2, est_cost_usd: round2(l2.est_cost_usd) })));
-  addPlainSheet(wb, "Dashboard_\uC5F0\uB3C4\uBCC4\uB9E4\uCD9C", [
-    { key: "year", label: "\uC5F0\uB3C4" },
-    { key: "lease_revenue_eok", label: "Lease \uB9E4\uCD9C(\uC5B5\uC6D0)" },
-    { key: "iru_otc_revenue_eok", label: "IRU OTC(\uC5B5\uC6D0)" },
-    { key: "iru_om_revenue_eok", label: "IRU O&M(\uC5B5\uC6D0)" },
-    { key: "total_revenue_eok", label: "\uCD1D\uB9E4\uCD9C(\uC5B5\uC6D0)" },
-    { key: "contracted_bandwidth_gbps", label: "\uC2E0\uADDC\uACC4\uC57D BW(Gbps)" },
-    { key: "new_contract_count", label: "\uC2E0\uADDC\uACC4\uC57D \uAC74\uC218" }
-  ], dash.revenue_yearly.map((y) => ({
-    ...y,
-    lease_revenue_eok: round2(y.lease_revenue_eok),
-    iru_otc_revenue_eok: round2(y.iru_otc_revenue_eok),
-    iru_om_revenue_eok: round2(y.iru_om_revenue_eok),
-    total_revenue_eok: round2(y.total_revenue_eok)
-  })));
+function addContractsFormulaColumns(ws, lastRow) {
+  const headers = [
+    "Bandwidth (Gbps)",
+    "\uB9CC\uB8CC\uC77C",
+    "\uC6D4\uB9E4\uCD9C(USD,\uD68C\uACC4\uAE30\uC900)",
+    "IRU OTC \uC6D4\uB9E4\uCD9C(USD)",
+    "IRU O&M \uC6D4\uB9E4\uCD9C(USD)",
+    "\uCD1D \uB9E4\uCD9C(USD)",
+    "OTC\uCD1D\uC561(USD)",
+    "\uC5F0OM\uCD1D\uC561(USD)",
+    "L\uD3EC\uD568_GS",
+    "L\uD3EC\uD568_SG3",
+    "L\uD3EC\uD568_Mega-i"
+  ];
+  const headerRow = ws.getRow(1);
+  headers.forEach((h, i) => {
+    headerRow.getCell(21 + i).value = h;
+  });
+  const fx = "Dashboard!$C$4";
+  for (let r = 2; r <= lastRow; r++) {
+    const mrcUsd = `IF(K${r}="KRW",L${r}/${fx},L${r})`;
+    const otcUsd = `IF(K${r}="KRW",M${r}/${fx},M${r})`;
+    const omUsd = `IF(K${r}="KRW",N${r}/${fx},N${r})`;
+    const monthlyOtcUsd = `IF(P${r}=0,0,(${otcUsd})/P${r})`;
+    const monthlyOmUsd = `(${omUsd})/12`;
+    const isIru = `D${r}="IRU"`;
+    ws.getCell(`U${r}`).value = { formula: `I${r}+J${r}` };
+    ws.getCell(`V${r}`).value = { formula: `EDATE(Q${r},P${r})` };
+    ws.getCell(`W${r}`).value = { formula: mrcUsd };
+    ws.getCell(`X${r}`).value = { formula: `IF(${isIru},${monthlyOtcUsd},0)` };
+    ws.getCell(`Y${r}`).value = { formula: `IF(${isIru},${monthlyOmUsd},0)` };
+    ws.getCell(`Z${r}`).value = { formula: `(${mrcUsd})*P${r}+(${otcUsd})+(${omUsd})*(P${r}/12)` };
+    ws.getCell(`AA${r}`).value = { formula: `IF(${isIru},${otcUsd},0)` };
+    ws.getCell(`AB${r}`).value = { formula: `IF(${isIru},${omUsd},0)` };
+    ws.getCell(`AC${r}`).value = { formula: `IF(ISNUMBER(SEARCH("GS",F${r})),1,0)` };
+    ws.getCell(`AD${r}`).value = { formula: `IF(ISNUMBER(SEARCH("SG3",F${r})),1,0)` };
+    ws.getCell(`AE${r}`).value = { formula: `IF(ISNUMBER(SEARCH("Mega",F${r})),1,0)` };
+  }
+}
+function addFunnelFormulaColumn(ws, lastRow) {
+  ws.getRow(1).getCell(12).value = "Bandwidth (Gbps)";
+  for (let r = 2; r <= lastRow; r++) ws.getCell(`L${r}`).value = { formula: `F${r}+G${r}` };
+}
+function addLightupFormulaColumn(ws, lastRow) {
+  ws.getRow(1).getCell(11).value = "Est. Cost ($)";
+  for (let r = 2; r <= lastRow; r++) ws.getCell(`K${r}`).value = { formula: `((E${r}+F${r})/100)*G${r}` };
+}
+function overlapMonthsExpr(cLast, year) {
+  const startIdx = `(YEAR(Contracts!$Q$2:$Q$${cLast})*12+MONTH(Contracts!$Q$2:$Q$${cLast}))`;
+  const endIdx = `(YEAR(Contracts!$V$2:$V$${cLast})*12+MONTH(Contracts!$V$2:$V$${cLast}))`;
+  const yearStart = year * 12 + 1;
+  const yearEndExcl = (year + 1) * 12 + 1;
+  const cappedEnd = `IF(${endIdx}>${yearEndExcl},${yearEndExcl},${endIdx})`;
+  const flooredStart = `IF(${startIdx}<${yearStart},${yearStart},${startIdx})`;
+  return `IF((${cappedEnd}-${flooredStart})<0,0,(${cappedEnd}-${flooredStart}))`;
+}
+function writeSegmentTable(ws, startRow, title, segments, { cLast, lLast, isSegmentS }) {
+  const bold = { font: { bold: true } };
+  let r = startRow;
+  ws.getCell(`B${r}`).value = title;
+  ws.getCell(`B${r}`).font = { bold: true, size: 12 };
+  r += 1;
+  const headers = ["Segment", "Design", "Equip 100G", "Equip 400G", "\uAD6C\uCD95\uC911 100G", "\uAD6C\uCD95\uC911 400G", "Sold 100G", "Sold 400G", "Avail 100G", "Avail 400G", "Sold \uD569\uACC4", "Avail \uD569\uACC4"];
+  if (isSegmentS) headers.push("\uCD94\uAC00 \uAD6C\uCD95 \uAC00\uB2A5");
+  headers.forEach((h, i) => {
+    const cell = ws.getCell(r, 2 + i);
+    cell.value = h;
+    cell.font = bold.font;
+  });
+  r += 1;
+  const firstDataRow = r;
+  for (const seg of segments) {
+    const sid = seg.segmentId.replace(/"/g, '""');
+    ws.getCell(`B${r}`).value = seg.label;
+    ws.getCell(`C${r}`).value = { formula: `SUMIF(CapacityDesign!$C$2:$C$${seg.capLast},"${sid}",CapacityDesign!$E$2:$E$${seg.capLast})` };
+    ws.getCell(`D${r}`).value = { formula: `SUMIFS(Lightup!$E$2:$E$${lLast},Lightup!$D$2:$D$${lLast},"${sid}",Lightup!$H$2:$H$${lLast},"\uC124\uCE58\uC644\uB8CC")` };
+    ws.getCell(`E${r}`).value = { formula: `SUMIFS(Lightup!$F$2:$F$${lLast},Lightup!$D$2:$D$${lLast},"${sid}",Lightup!$H$2:$H$${lLast},"\uC124\uCE58\uC644\uB8CC")` };
+    ws.getCell(`F${r}`).value = { formula: `SUMIFS(Lightup!$E$2:$E$${lLast},Lightup!$D$2:$D$${lLast},"${sid}",Lightup!$H$2:$H$${lLast},"\uAD6C\uCD95\uC911")` };
+    ws.getCell(`G${r}`).value = { formula: `SUMIFS(Lightup!$F$2:$F$${lLast},Lightup!$D$2:$D$${lLast},"${sid}",Lightup!$H$2:$H$${lLast},"\uAD6C\uCD95\uC911")` };
+    if (isSegmentS) {
+      ws.getCell(`H${r}`).value = { formula: `SUMIFS(Contracts!$I$2:$I$${cLast},Contracts!$E$2:$E$${cLast},"${sid}",Contracts!$R$2:$R$${cLast},"Active")` };
+      ws.getCell(`I${r}`).value = { formula: `SUMIFS(Contracts!$J$2:$J$${cLast},Contracts!$E$2:$E$${cLast},"${sid}",Contracts!$R$2:$R$${cLast},"Active")` };
+    } else {
+      ws.getCell(`H${r}`).value = { formula: `SUMIFS(Contracts!$I$2:$I$${cLast},Contracts!$${seg.flagCol}$2:$${seg.flagCol}$${cLast},1,Contracts!$R$2:$R$${cLast},"Active")` };
+      ws.getCell(`I${r}`).value = { formula: `SUMIFS(Contracts!$J$2:$J$${cLast},Contracts!$${seg.flagCol}$2:$${seg.flagCol}$${cLast},1,Contracts!$R$2:$R$${cLast},"Active")` };
+    }
+    ws.getCell(`J${r}`).value = { formula: `D${r}-H${r}` };
+    ws.getCell(`K${r}`).value = { formula: `E${r}-I${r}` };
+    ws.getCell(`L${r}`).value = { formula: `H${r}+I${r}` };
+    ws.getCell(`M${r}`).value = { formula: `J${r}+K${r}` };
+    if (isSegmentS) ws.getCell(`N${r}`).value = { formula: `C${r}-SUM(D${r}:G${r})` };
+    r += 1;
+  }
+  const lastDataRow = r - 1;
+  ws.getCell(`B${r}`).value = "TOTAL";
+  ws.getCell(`B${r}`).font = bold.font;
+  const cols = isSegmentS ? ["C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N"] : ["C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M"];
+  for (const col of cols) {
+    ws.getCell(`${col}${r}`).value = { formula: `SUM(${col}${firstDataRow}:${col}${lastDataRow})` };
+    ws.getCell(`${col}${r}`).font = bold.font;
+  }
+  return r + 1;
+}
+function addDashboardSheet(wb, ctx) {
+  const { fxRate, cLast, fLast, lLast, kLast, capLast, segmentSRows, segmentLRows } = ctx;
+  const ws = wb.addWorksheet("Dashboard");
+  ws.getColumn(1).width = 2;
+  for (let c = 2; c <= 13; c++) ws.getColumn(c).width = 13;
+  ws.views = [{ state: "frozen", ySplit: 0 }];
+  let r = 1;
+  ws.getCell(`B${r}`).value = "\u{1F6F0}\uFE0F SJC2 Capacity Schedule Management";
+  ws.getCell(`B${r}`).font = { bold: true, size: 14 };
+  r += 1;
+  ws.getCell(`B${r}`).value = "\uB370\uC774\uD130 \uC785\uB825 \uC2DC \uC804\uCCB4 \uC218\uC2DD\uC774 \uC790\uB3D9 \uAC31\uC2E0\uB429\uB2C8\uB2E4 (Contracts/Lightup/Funnel/KPI/CapacityDesign \uC2DC\uD2B8\uB97C \uC218\uC815\uD574 \uBCF4\uC138\uC694)";
+  r += 2;
+  ws.getCell(`B${r}`).value = "\uAE30\uC900\uD658\uC728 (KRW per USD)";
+  ws.getCell(`B${r}`).font = { bold: true };
+  const fxRow = r;
+  if (fxRow !== 4) throw new Error(`Dashboard fx rate row moved to ${fxRow}; update the 'Dashboard!$C$4' reference in addContractsFormulaColumns`);
+  ws.getCell(`C${r}`).value = fxRate;
+  r += 2;
+  ws.getCell(`B${r}`).value = "\u{1F3AF} KPI";
+  ws.getCell(`B${r}`).font = { bold: true };
+  r += 1;
+  ws.getCell(`B${r}`).value = { formula: `IFERROR(INDEX(KPI!$B$2:$B$${kLast},MATCH(MAX(KPI!$B$2:$B$${kLast}),KPI!$B$2:$B$${kLast},0))&"\uB144","-")` };
+  ws.getCell(`D${r}`).value = { formula: `IF(IFERROR(INDEX(KPI!$C$2:$C$${kLast},MATCH(MAX(KPI!$B$2:$B$${kLast}),KPI!$B$2:$B$${kLast},0)),"")="","\uBA54\uBAA8 \uC5C6\uC74C",INDEX(KPI!$C$2:$C$${kLast},MATCH(MAX(KPI!$B$2:$B$${kLast}),KPI!$B$2:$B$${kLast},0)))` };
+  r += 2;
+  ws.getCell(`B${r}`).value = "\u{1F4CA} \uD575\uC2EC \uC9C0\uD45C";
+  ws.getCell(`B${r}`).font = { bold: true };
+  r += 1;
+  [["B", "Active \uACC4\uC57D"], ["D", "Active \uCD1D BW(Gbps)"], ["F", "Lease MRC(\uC5B5\uC6D0/\uC6D4)"], ["H", "\uB204\uC801 \uB9E4\uCD9C(\uC5B5\uC6D0)"]].forEach(([col, label]) => {
+    ws.getCell(`${col}${r}`).value = label;
+    ws.getCell(`${col}${r}`).font = { bold: true };
+  });
+  r += 1;
+  ws.getCell(`B${r}`).value = { formula: `COUNTIF(Contracts!$R$2:$R$${cLast},"Active")` };
+  ws.getCell(`D${r}`).value = { formula: `SUMIF(Contracts!$R$2:$R$${cLast},"Active",Contracts!$U$2:$U$${cLast})` };
+  const leaseMrcFormula = `SUMIFS(Contracts!$W$2:$W$${cLast},Contracts!$R$2:$R$${cLast},"Active",Contracts!$D$2:$D$${cLast},"Lease")*$C$${fxRow}/100000000`;
+  ws.getCell(`F${r}`).value = { formula: leaseMrcFormula };
+  const cumulativeRevenueFormula = `SUM(Contracts!$Z$2:$Z$${cLast})*$C$${fxRow}/100000000`;
+  ws.getCell(`H${r}`).value = { formula: cumulativeRevenueFormula };
+  r += 2;
+  ws.getCell(`B${r}`).value = "\u{1F30A} Segment S \uC0AC\uC6A9\uB960 (Design \uB300\uBE44 Sold, %)";
+  ws.getCell(`B${r}`).font = { bold: true };
+  ws.getCell(`D${r}`).value = {
+    formula: `IFERROR(ROUND(SUMIF(Contracts!$R$2:$R$${cLast},"Active",Contracts!$U$2:$U$${cLast})/SUMIF(CapacityDesign!$B$2:$B$${capLast},"S",CapacityDesign!$E$2:$E$${capLast})*100,0),0)`
+  };
+  r += 2;
+  r = writeSegmentTable(ws, r, "\u{1F30A} Segment S \uC0C1\uC138 (Gbps)", segmentSRows.map((s) => ({ segmentId: s.segment_id, label: s.segment_label, capLast })), { cLast, lLast, isSegmentS: true });
+  r += 1;
+  r = writeSegmentTable(ws, r, "\u{1F6E3}\uFE0F Segment L \uC0C1\uC138 (Gbps)", segmentLRows.map((s) => ({ segmentId: s.segment_id, label: s.segment_label, flagCol: s.flagCol, capLast })), { cLast, lLast, isSegmentS: false });
+  r += 1;
+  ws.getCell(`B${r}`).value = "\u{1F4B0} \uB9E4\uCD9C \uC694\uC57D / \u{1F53D} Funnel / \u26A1 Lightup \uD604\uD669";
+  ws.getCell(`B${r}`).font = { bold: true, size: 12 };
+  r += 1;
+  ws.getCell(`B${r}`).value = "\uB9E4\uCD9C \uC694\uC57D";
+  ws.getCell(`B${r}`).font = { bold: true };
+  ws.getCell(`E${r}`).value = "Stage";
+  ws.getCell(`F${r}`).value = "\uAC74\uC218";
+  ws.getCell(`G${r}`).value = "BW(Gbps)";
+  ws.getCell(`I${r}`).value = "Status";
+  ws.getCell(`J${r}`).value = "Qty(Gbps)";
+  ws.getCell(`K${r}`).value = "Est. Cost($)";
+  ["E", "F", "G", "I", "J", "K"].forEach((c) => {
+    ws.getCell(`${c}${r}`).font = { bold: true };
+  });
+  r += 1;
+  const revenueRows = [
+    { label: "Lease MRC(\uC5B5\uC6D0/\uC6D4)", formula: leaseMrcFormula, funnelStage: "Prospect", lightupStatus: "\uC124\uCE58\uC644\uB8CC" },
+    { label: "Lease ARR(\uC5B5\uC6D0/\uB144)", formula: null, funnelStage: "Negotiation", lightupStatus: "\uAD6C\uCD95\uC911" },
+    { label: "IRU OTC(\uC5B5\uC6D0)", formula: `SUMIFS(Contracts!$AA$2:$AA$${cLast},Contracts!$R$2:$R$${cLast},"Active",Contracts!$D$2:$D$${cLast},"IRU")*$C$${fxRow}/100000000`, funnelStage: "Signed", lightupStatus: "\uACC4\uD68D\uC911" },
+    { label: "IRU \uC5F0O&M(\uC5B5\uC6D0)", formula: `SUMIFS(Contracts!$AB$2:$AB$${cLast},Contracts!$R$2:$R$${cLast},"Active",Contracts!$D$2:$D$${cLast},"IRU")*$C$${fxRow}/100000000`, funnelStage: "Active", lightupStatus: null },
+    { label: "\uB204\uC801 \uB9E4\uCD9C(\uC5B5\uC6D0)", formula: cumulativeRevenueFormula, funnelStage: null, lightupStatus: null }
+  ];
+  const leaseMrcCellRow = r;
+  revenueRows.forEach((row, i) => {
+    const thisRow = r + i;
+    ws.getCell(`B${thisRow}`).value = row.label;
+    ws.getCell(`D${thisRow}`).value = { formula: row.formula ?? `D${leaseMrcCellRow}*12` };
+    if (row.funnelStage) {
+      ws.getCell(`E${thisRow}`).value = row.funnelStage;
+      ws.getCell(`F${thisRow}`).value = { formula: `COUNTIF(Funnel!$H$2:$H$${fLast},"${row.funnelStage}")` };
+      ws.getCell(`G${thisRow}`).value = { formula: `SUMIF(Funnel!$H$2:$H$${fLast},"${row.funnelStage}",Funnel!$L$2:$L$${fLast})` };
+    }
+    if (row.lightupStatus) {
+      ws.getCell(`I${thisRow}`).value = row.lightupStatus;
+      ws.getCell(`J${thisRow}`).value = { formula: `SUMIF(Lightup!$H$2:$H$${lLast},"${row.lightupStatus}",Lightup!$E$2:$E$${lLast})+SUMIF(Lightup!$H$2:$H$${lLast},"${row.lightupStatus}",Lightup!$F$2:$F$${lLast})` };
+      ws.getCell(`K${thisRow}`).value = { formula: `SUMIF(Lightup!$H$2:$H$${lLast},"${row.lightupStatus}",Lightup!$K$2:$K$${lLast})` };
+    }
+  });
+  r += revenueRows.length + 1;
+  ws.getCell(`B${r}`).value = "\u{1F4C5} \uC5F0\uB3C4\uBCC4 \uB9E4\uCD9C(\uC5B5\uC6D0) & \uACC4\uC57D Bandwidth(Gbps)";
+  ws.getCell(`B${r}`).font = { bold: true, size: 12 };
+  r += 1;
+  ws.getCell(`B${r}`).value = "* \uB9E4\uCD9C\uC740 \uACC4\uC57D \uC2DC\uC791\uC77C~\uC885\uB8CC\uC77C \uAE30\uC900 \uC6D4\uBCC4 \uBE44\uB840\uC778\uC2DD, BW\uB294 \uADF8 \uD574 \uC2E0\uADDC \uACC4\uC57D \uAE30\uC900";
+  r += 1;
+  ["\uC5F0\uB3C4", "Lease \uB9E4\uCD9C", "IRU OTC", "IRU O&M", "\uCD1D \uB9E4\uCD9C", "\uACC4\uC57D BW(Gbps)", "\uC2E0\uADDC \uACC4\uC57D \uAC74\uC218"].forEach((h, i) => {
+    const cell = ws.getCell(r, 2 + i);
+    cell.value = h;
+    cell.font = { bold: true };
+  });
+  r += 1;
+  const yearFirstRow = r;
+  for (let year = YEAR_FROM; year <= YEAR_TO; year++) {
+    const overlap = overlapMonthsExpr(cLast, year);
+    ws.getCell(`B${r}`).value = year;
+    ws.getCell(`C${r}`).value = { formula: `SUMPRODUCT((Contracts!$D$2:$D$${cLast}="Lease")*(${overlap})*Contracts!$W$2:$W$${cLast})*$C$${fxRow}/100000000` };
+    ws.getCell(`D${r}`).value = { formula: `SUMPRODUCT((${overlap})*Contracts!$X$2:$X$${cLast})*$C$${fxRow}/100000000` };
+    ws.getCell(`E${r}`).value = { formula: `SUMPRODUCT((${overlap})*Contracts!$Y$2:$Y$${cLast})*$C$${fxRow}/100000000` };
+    ws.getCell(`F${r}`).value = { formula: `C${r}+D${r}+E${r}` };
+    ws.getCell(`G${r}`).value = { formula: `SUMIFS(Contracts!$U$2:$U$${cLast},Contracts!$O$2:$O$${cLast},${year})` };
+    ws.getCell(`H${r}`).value = { formula: `COUNTIFS(Contracts!$O$2:$O$${cLast},${year})` };
+    r += 1;
+  }
+  const yearLastRow = r - 1;
+  ws.getCell(`B${r}`).value = "TOTAL";
+  ws.getCell(`B${r}`).font = { bold: true };
+  for (const col of ["C", "D", "E", "F", "G", "H"]) {
+    ws.getCell(`${col}${r}`).value = { formula: `SUM(${col}${yearFirstRow}:${col}${yearLastRow})` };
+    ws.getCell(`${col}${r}`).font = { bold: true };
+  }
+  ws.orderNo = 0;
+  return ws;
 }
 async function buildWorkbook() {
   const wb = new import_exceljs.default.Workbook();
   wb.creator = "SJC2 Capacity Schedule";
   wb.created = /* @__PURE__ */ new Date();
+  const fxRate = await getFxRate();
+  const rowCounts = {};
+  let capacityDesignRows = [];
   for (const def of TABLE_DEFS) {
     const rows = await db.prepare(`SELECT * FROM ${def.table} ORDER BY ${def.orderBy}`).all();
+    rowCounts[def.table] = rows.length;
+    if (def.table === "capacity_design") capacityDesignRows = rows;
     const ws = wb.addWorksheet(def.sheet);
     ws.columns = [
       { header: "ID", key: "id", width: 8 },
       ...def.columns.map((c) => ({ header: c.label, key: c.key, width: Math.max(12, c.label.length + 2) }))
     ];
-    ws.getRow(1).font = { bold: true };
-    ws.getRow(1).eachCell((cell) => {
-      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE8EEF7" } };
-    });
+    styleHeaderRow(ws.getRow(1));
     ws.views = [{ state: "frozen", ySplit: 1 }];
+    const dateColumns = def.columns.filter((c) => c.date);
     for (const r of rows) {
       const rowObj = { id: r.id };
       for (const c of def.columns) rowObj[c.key] = cellForExport(c, r[c.key]);
-      ws.addRow(rowObj);
+      const newRow = ws.addRow(rowObj);
+      for (const c of dateColumns) {
+        const cell = newRow.getCell(c.key);
+        if (cell.value) cell.numFmt = "yyyy-mm-dd";
+      }
     }
+    const lastRow = 1 + rows.length;
+    if (def.table === "contracts") addContractsFormulaColumns(ws, lastRow);
+    if (def.table === "funnel") addFunnelFormulaColumn(ws, lastRow);
+    if (def.table === "lightup_schedule") addLightupFormulaColumn(ws, lastRow);
   }
-  await addDashboardSheets(wb);
+  const segmentSRows = capacityDesignRows.filter((r) => r.seg_type === "S");
+  const segmentLRows = SEGMENT_L_DEFS.map((def) => {
+    const row = capacityDesignRows.find((r) => r.segment_id === def.segmentId);
+    return row ? { segment_id: row.segment_id, segment_label: row.segment_label, flagCol: def.flagCol } : null;
+  }).filter(Boolean);
+  addDashboardSheet(wb, {
+    fxRate,
+    cLast: 1 + rowCounts.contracts,
+    fLast: 1 + rowCounts.funnel,
+    lLast: 1 + rowCounts.lightup_schedule,
+    kLast: 1 + rowCounts.kpis,
+    capLast: 1 + rowCounts.capacity_design,
+    segmentSRows,
+    segmentLRows
+  });
   return wb;
 }
 function cellToValue(cell, col) {
