@@ -9,6 +9,7 @@ import logRouter from './routes/log.js';
 import authRouter from './routes/auth.js';
 import cablesRouter from './routes/cables.js';
 import chatbotRouter from './routes/chatbot.js';
+import dataIoRouter from './routes/dataIo.js';
 import { requireAuth } from './auth.js';
 
 const app = express();
@@ -75,5 +76,6 @@ app.use('/api/settings', settingsRouter);
 app.use('/api/log', logRouter);
 app.use('/api/cables', cablesRouter);
 app.use('/api/chatbot', chatbotRouter);
+app.use('/api/data-io', dataIoRouter);
 
 export default app;
