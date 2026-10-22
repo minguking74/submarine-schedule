@@ -8,6 +8,8 @@ if (!connectionString) {
 }
 
 const pool = new Pool({
+  // Fail fast instead of hanging forever when the DB is unreachable (e.g. paused Supabase project).
+  connectionTimeoutMillis: 10000,
   connectionString,
   ssl: connectionString.includes('localhost') ? false : { rejectUnauthorized: false },
 });

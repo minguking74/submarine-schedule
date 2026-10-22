@@ -39,6 +39,7 @@ async function askInternal({ system, messages }) {
     },
     body: JSON.stringify({
       model: process.env.LLM_MODEL,
+      temperature: 0,
       messages: [{ role: 'system', content: system }, ...messages],
     }),
   });
@@ -50,6 +51,11 @@ async function askInternal({ system, messages }) {
   return data.choices?.[0]?.message?.content || '';
 }
 
+export function isLlmConfigured() {
+  const provider = process.env.LLM_PROVIDER || 'none';
+  return provider !== 'none' && Boolean(process.env.LLM_API_KEY);
+}
+
 /**
  * @param {{ system: string, messages: {role: 'user'|'assistant', content: string}[] }} args
  * @returns {Promise<{ ok: boolean, message: string }>}
@@ -57,7 +63,7 @@ async function askInternal({ system, messages }) {
 export async function askLlm({ system, messages }) {
   const provider = process.env.LLM_PROVIDER || 'none';
 
-  if (provider === 'none' || !process.env.LLM_API_KEY) {
+  if (!isLlmConfigured()) {
     return { ok: false, message: NOT_CONFIGURED_MESSAGE };
   }
 

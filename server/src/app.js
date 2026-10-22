@@ -1,4 +1,5 @@
 import express from 'express';
+import Layer from 'express/lib/router/layer.js';
 import cors from 'cors';
 import { makeCrudRouter } from './routes/genericCrud.js';
 import contractsRouter from './routes/contracts.js';
@@ -11,6 +12,27 @@ import cablesRouter from './routes/cables.js';
 import chatbotRouter from './routes/chatbot.js';
 import dataIoRouter from './routes/dataIo.js';
 import { requireAuth } from './auth.js';
+
+// Express 4 ignores promises returned by route handlers, so a rejected async handler
+// (e.g. DB unreachable) became an unhandledRejection that crashes the whole Node
+// process. Forward those rejections to the error middleware instead.
+const originalHandleRequest = Layer.prototype.handle_request;
+Layer.prototype.handle_request = function handleRequest(req, res, next) {
+  if (this.handle.length > 3) return originalHandleRequest.call(this, req, res, next);
+  try {
+    const result = this.handle(req, res, next);
+    if (result && typeof result.catch === 'function') result.catch(next);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const DB_CONNECTION_ERROR_CODES = new Set(['ENOTFOUND', 'EAI_AGAIN', 'ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT']);
+
+function isDbConnectionError(err) {
+  return DB_CONNECTION_ERROR_CODES.has(err.code)
+    || /tenant or user not found|tenant\/user .* not found|connection terminated|timeout exceeded when trying to connect/i.test(err.message || '');
+}
 
 const app = express();
 app.use(cors());
@@ -77,5 +99,17 @@ app.use('/api/log', logRouter);
 app.use('/api/cables', cablesRouter);
 app.use('/api/chatbot', chatbotRouter);
 app.use('/api/data-io', dataIoRouter);
+
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error(`[${req.method} ${req.originalUrl}]`, err);
+  if (res.headersSent) return;
+  if (isDbConnectionError(err)) {
+    return res.status(503).json({
+      error: '데이터베이스에 연결할 수 없습니다. DB(Supabase) 프로젝트가 일시정지되었거나 접속 정보가 바뀌었을 수 있습니다. 관리자에게 문의해 주세요.',
+    });
+  }
+  res.status(500).json({ error: `서버 오류가 발생했습니다: ${err.message}` });
+});
 
 export default app;

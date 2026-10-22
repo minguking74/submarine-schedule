@@ -17,7 +17,9 @@ export default function Login() {
     try {
       await login(name.trim(), password, role);
     } catch (err) {
-      setError('로그인에 실패했습니다. 비밀번호를 확인해 주세요.');
+      if (err.status === 401) setError('로그인에 실패했습니다. 비밀번호를 확인해 주세요.');
+      else if (err.status && err.serverMessage) setError(err.serverMessage);
+      else setError('서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.');
     } finally {
       setLoading(false);
     }

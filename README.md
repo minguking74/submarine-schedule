@@ -54,8 +54,10 @@ admin/viewer 권한을 선택한 뒤, 선택한 권한에 해당하는 비밀번
 - 좌측 상단 SJC2 / E2A / PAE 버튼으로 케이블을 전환할 수 있습니다. E2A(2028 서비스 예정),
   PAE(2031 서비스 예정)는 간단 개요 페이지이며 admin이 내용을 입력/수정합니다.
 - "외부 자료" 메뉴에 submarinecablemap.com, subtelforum.com 링크가 있습니다.
-- 우하단 챗봇은 이 앱의 내부 데이터만 근거로 답변합니다. `LLM_PROVIDER`가 설정되지
-  않으면 안내 메시지만 표시됩니다. 사내 LLM 연동 시 `server/.env`에
+- 우하단 챗봇은 이 앱의 내부 데이터(Capacity·Lightup·Funnel·Contracts·매출·내부수요·KPI·
+  환율·케이블 개요)만 근거로 답변하고, 데이터와 무관한 질문은 답변을 거절합니다
+  (`server/src/chatbotKnowledge.js`). `LLM_PROVIDER`가 없으면(또는 LLM 호출이 실패하면)
+  LLM 없이 규칙 기반으로 DB에서 바로 답을 조합합니다. 사내 LLM 연동 시 `server/.env`에
   `LLM_PROVIDER=internal`, `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`을 채우면 됩니다
   (Anthropic API를 쓰는 경우 `LLM_PROVIDER=anthropic`). Vercel 배포본에도 동일한 환경변수를
   추가해야 합니다.

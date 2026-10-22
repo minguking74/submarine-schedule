@@ -359,8 +359,9 @@ table.data-table tr.total-row { font-weight: 700; background: var(--panel-2); }
   position: fixed;
   right: 24px;
   bottom: 88px;
-  width: 340px;
-  max-height: 480px;
+  width: 400px;
+  max-width: calc(100vw - 32px);
+  max-height: min(560px, calc(100vh - 110px));
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -387,6 +388,27 @@ table.data-table tr.total-row { font-weight: 700; background: var(--panel-2); }
   min-height: 200px;
 }
 .chatbot-empty { color: var(--text-dim); font-size: 12px; line-height: 1.6; }
+.chatbot-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.chatbot-mode {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.chatbot-suggestions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.chatbot-chip {
+  font-size: 11px;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.chatbot-chip:hover { border-color: var(--accent); }
+.chatbot-sources { margin-top: 6px; font-size: 11px; color: var(--text-dim); }
 .chatbot-msg {
   font-size: 13px;
   line-height: 1.5;
