@@ -25,6 +25,16 @@ export function requireAuth(req, res, next) {
   }
 }
 
+/** Like requireAuth, but a request without a token proceeds as a read-only guest viewer. */
+export function optionalAuth(req, res, next) {
+  const header = req.headers.authorization || '';
+  if (!header.startsWith('Bearer ')) {
+    req.user = { name: 'guest', role: 'viewer' };
+    return next();
+  }
+  return requireAuth(req, res, next);
+}
+
 export function requireAdmin(req, res, next) {
   if (!req.user) return res.status(401).json({ error: '로그인이 필요합니다' });
   if (req.user.role !== 'admin') return res.status(403).json({ error: '관리자만 가능합니다' });

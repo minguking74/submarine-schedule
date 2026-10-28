@@ -21,7 +21,7 @@ const CABLES = [
 ];
 
 export default function Sidebar() {
-  const { name, role, isAdmin, logout } = useAuth();
+  const { token, name, role, isAdmin, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -72,11 +72,23 @@ export default function Sidebar() {
       </nav>
 
       <div className="sidebar-user">
-        <div className="sidebar-user-info">
-          <div className="sidebar-user-name">{name}</div>
-          <div className="sidebar-user-role">{role === 'admin' ? '관리자' : '뷰어'}</div>
-        </div>
-        <button className="btn-sm" onClick={logout}>로그아웃</button>
+        {token ? (
+          <>
+            <div className="sidebar-user-info">
+              <div className="sidebar-user-name">{name}</div>
+              <div className="sidebar-user-role">{role === 'admin' ? '관리자' : '뷰어'}</div>
+            </div>
+            <button className="btn-sm" onClick={logout}>로그아웃</button>
+          </>
+        ) : (
+          <>
+            <div className="sidebar-user-info">
+              <div className="sidebar-user-name">조회 모드</div>
+              <div className="sidebar-user-role">수정은 관리자 로그인 필요</div>
+            </div>
+            <button className="btn-sm" onClick={() => navigate('/login')}>관리자 로그인</button>
+          </>
+        )}
       </div>
     </aside>
   );

@@ -11,7 +11,7 @@ import authRouter from './routes/auth.js';
 import cablesRouter from './routes/cables.js';
 import chatbotRouter from './routes/chatbot.js';
 import dataIoRouter from './routes/dataIo.js';
-import { requireAuth } from './auth.js';
+import { optionalAuth } from './auth.js';
 
 // Express 4 ignores promises returned by route handlers, so a rejected async handler
 // (e.g. DB unreachable) became an unhandledRejection that crashes the whole Node
@@ -41,8 +41,8 @@ app.use(express.json());
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.use('/api/auth', authRouter);
 
-// Everything registered below requires a logged-in session (viewer or admin).
-app.use('/api', requireAuth);
+// Everything below is readable without login (guest = viewer); writes still need an admin token.
+app.use('/api', optionalAuth);
 
 app.use('/api/capacity-design', makeCrudRouter({
   table: 'capacity_design',

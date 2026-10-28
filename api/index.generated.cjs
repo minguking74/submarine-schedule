@@ -102403,6 +102403,14 @@ function requireAuth(req, res, next) {
     res.status(401).json({ error: "\uC138\uC158\uC774 \uB9CC\uB8CC\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uB85C\uADF8\uC778\uD574 \uC8FC\uC138\uC694" });
   }
 }
+function optionalAuth(req, res, next) {
+  const header = req.headers.authorization || "";
+  if (!header.startsWith("Bearer ")) {
+    req.user = { name: "guest", role: "viewer" };
+    return next();
+  }
+  return requireAuth(req, res, next);
+}
 function requireAdmin(req, res, next) {
   if (!req.user) return res.status(401).json({ error: "\uB85C\uADF8\uC778\uC774 \uD544\uC694\uD569\uB2C8\uB2E4" });
   if (req.user.role !== "admin") return res.status(403).json({ error: "\uAD00\uB9AC\uC790\uB9CC \uAC00\uB2A5\uD569\uB2C8\uB2E4" });
@@ -103789,7 +103797,7 @@ app.use((0, import_cors.default)());
 app.use(import_express11.default.json());
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 app.use("/api/auth", auth_default);
-app.use("/api", requireAuth);
+app.use("/api", optionalAuth);
 app.use("/api/capacity-design", makeCrudRouter({
   table: "capacity_design",
   columns: ["seg_type", "segment_id", "segment_label", "design_capacity_gbps", "sort_order"],

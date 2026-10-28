@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './auth.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import Chatbot from './components/Chatbot.jsx';
@@ -17,9 +17,10 @@ import LoginLog from './pages/LoginLog.jsx';
 import CableOverview from './pages/CableOverview.jsx';
 
 function AppShell() {
-  const { token, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
+  const location = useLocation();
 
-  if (!token) return <Login />;
+  if (location.pathname === '/login') return isAdmin ? <Navigate to="/" replace /> : <Login />;
 
   return (
     <div className="app-shell">

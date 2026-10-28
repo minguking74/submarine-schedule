@@ -41,7 +41,8 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider value={{
       token: session?.token || null,
       name: session?.name || null,
-      role: session?.role || null,
+      // No session = read-only guest viewer; logging in is only needed to edit (admin).
+      role: session?.role || 'viewer',
       isAdmin: session?.role === 'admin',
       login,
       logout,
